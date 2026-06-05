@@ -1,0 +1,8 @@
+# Секреты — никогда в GitHub
+.env
+.env.*
+*.env
+RENDER-ENV-ВСТАВИТЬ.txt
+render-deploy-local/
+__pycache__/
+*.pyc

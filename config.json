@@ -1,0 +1,66 @@
+{
+  "project": "red-button",
+  "locale": "ru",
+
+  "model": "gpt-4o-mini",
+  "temperature": 0.4,
+
+  "start_message": "Здравствуйте! Это горячая линия анонимной помощи. Проблема у вас или у вашего близкого?",
+
+  "buttons": {
+    "mode_self": "Проблема у меня",
+    "mode_relative": "Проблема у близкого",
+    "yes": "Да",
+    "no": "Нет",
+    "call_yes": "Да, созвон",
+    "call_no": "Пока текстом",
+    "specialist_help": "🔴 Нужна помощь специалиста",
+    "send_contact": "📱 Отправить мой номер",
+    "need_callback": "📞 Мне нужно чтобы мне позвонили"
+  },
+
+  "triage_question": "Нужна ли срочная помощь прямо сейчас? Есть угроза жизни (потеря сознания, судороги, угроза суицида)?",
+  "what_happened_question": "Расскажите коротко, что случилось и что сейчас сложнее всего?",
+
+  "max_turns_min": 5,
+  "max_turns_max": 7,
+
+  "call_pitch": "Кажется, я понял ситуацию и чем можно помочь дальше. Предлагаю короткий анонимный созвон 5–10 минут — так быстрее соберём план. Готовы?",
+  "safety_hint": "Сейчас самое важное — безопасность. Если есть риск для жизни — пожалуйста, звоните 103 или 112.",
+
+  "admin": {
+    "enabled": true,
+    "admin_user_ids": [],
+    "admin_chat_ids": []
+  },
+
+  "broadcasts": {
+    "enabled": true,
+    "batch_size": 25,
+    "sleep_ms_between_batches": 200
+  },
+
+  "followups": {
+    "first_after_hours": 24,
+    "second_after_hours": 48,
+    "max_count": 2
+  },
+
+  "db": {
+    "driver": "postgres",
+    "db_url_env": "DATABASE_URL",
+    "pool_min": 1,
+    "pool_max": 10
+  },
+
+  "logging": {
+    "level": "INFO"
+  },
+
+  "phones": {
+    "default_specialist": "89236781121",
+    "bullying_specialist": "89081075261",
+    "emergency": ["103", "112"]
+  }
+}
+

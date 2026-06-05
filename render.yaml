@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: red-button-api
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
+    envVars:
+      - key: WEB_CHAT_CORS
+        value: https://redbuttonhelp.ru
+      - key: DATABASE_URL
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
