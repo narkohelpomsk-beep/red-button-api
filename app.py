@@ -188,6 +188,7 @@ def detect_topic(
     cfg: Optional[Dict[str, Any]] = None,
     short_history: str = "",
     current_topic: Optional[str] = None,
+    skip_gpt: bool = False,
 ) -> Optional[str]:
     t = (text or "").lower().strip()
     if not t:
@@ -217,15 +218,16 @@ def detect_topic(
     if len(t) <= 24 and not any(kw in t for kw in ("ломк", "наркот", "алког", "пьян", "булл", "травл", "игром", "зависим", "суицид", "умер", "умру")):
         return None
 
-    # 2. Затем GPT-классификация
-    topic_from_gpt = detect_topic_gpt(
-        cfg=cfg,
-        text=text,
-        short_history=short_history,
-        current_topic=current_topic,
-    )
-    if topic_from_gpt:
-        return topic_from_gpt
+    # 2. Затем GPT-классификация (на сайте пропускаем — быстрее, хватает regex)
+    if not skip_gpt:
+        topic_from_gpt = detect_topic_gpt(
+            cfg=cfg,
+            text=text,
+            short_history=short_history,
+            current_topic=current_topic,
+        )
+        if topic_from_gpt:
+            return topic_from_gpt
 
     # 3. И только потом fallback-эвристика
     KW = {
@@ -867,6 +869,13 @@ def _web_run(meta: Dict[str, Any], text: str, *, phone: Optional[str] = None) ->
     return out
 
 
+@app.route("/api/chat/ping", methods=["POST", "OPTIONS", "GET"])
+def web_chat_ping():
+    if request.method == "OPTIONS":
+        return _web_cors(jsonify({"ok": True}))
+    return _web_cors(jsonify({"ok": True}))
+
+
 @app.route("/api/chat/start", methods=["POST", "OPTIONS"])
 def web_chat_start():
     if request.method == "OPTIONS":
@@ -914,28 +923,32 @@ def panel_headers():
 def send_to_panel(chat_id, user, text, direction, sender_type=None, telegram_message_id=None):
     if not PANEL_API_URL:
         return
-    try:
-        name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
-        payload = {
-            "chat_id": str(chat_id),
-            "user_id": str(user.get("id") or ""),
-            "username": f"@{user.get('username')}" if user.get("username") else "",
-            "name": name,
-            "direction": direction,
-            "sender_type": sender_type or ("user" if direction == "in" else "bot"),
-            "text": text or "",
-            "telegram_message_id": telegram_message_id,
-        }
-        r = requests.post(
-            f"{PANEL_API_URL}/api/message",
-            json=payload,
-            headers=panel_headers(),
-            timeout=5,
-        )
-        if not r.ok:
-            logging.warning("panel api_message failed: %s %s", r.status_code, r.text)
-    except Exception:
-        logging.exception("panel send failed")
+
+    def _post():
+        try:
+            name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
+            payload = {
+                "chat_id": str(chat_id),
+                "user_id": str(user.get("id") or ""),
+                "username": f"@{user.get('username')}" if user.get("username") else "",
+                "name": name,
+                "direction": direction,
+                "sender_type": sender_type or ("user" if direction == "in" else "bot"),
+                "text": text or "",
+                "telegram_message_id": telegram_message_id,
+            }
+            r = requests.post(
+                f"{PANEL_API_URL}/api/message",
+                json=payload,
+                headers=panel_headers(),
+                timeout=5,
+            )
+            if not r.ok:
+                logging.warning("panel api_message failed: %s %s", r.status_code, r.text)
+        except Exception:
+            logging.exception("panel send failed")
+
+    threading.Thread(target=_post, daemon=True).start()
 
 def panel_bot_enabled(chat_id) -> bool:
     if str(chat_id).startswith("web:"):
@@ -1465,6 +1478,8 @@ def handle_incoming_message(
     cfg = load_cfg()
     build_indexes()
 
+    _web_chat = str(chat_id).startswith("web:")
+
     if update_id is not None and not mark_update_processed(update_id):
         return {"ok": True}
 
@@ -1701,25 +1716,17 @@ def handle_incoming_message(
         elif text == cfg["buttons"]["mode_relative"]:
             s["mode"] = "relatives"
         elif _detect_platform(chat_id, user) == "site":
-            # На сайте часто пишут сразу «снуп», «мне плохо» — не заставляем жать кнопку
+            # На сайте не заставляем жать кнопку — сразу консультация
+            s["mode"] = "self"
             guess = detect_topic(
                 text,
                 cfg=cfg,
                 short_history=short_history_text(s),
                 current_topic=s.get("topic"),
+                skip_gpt=True,
             )
-            if guess or len((text or "").strip()) >= 6:
-                s["mode"] = "self"
-                if guess:
-                    s["topic"] = guess
-            else:
-                tg_send_and_panel(
-                    chat_id,
-                    user,
-                    "Пожалуйста, выберите вариант на кнопках ниже.",
-                    buttons=main_menu(cfg),
-                )
-                return {"ok": True}
+            if guess:
+                s["topic"] = guess
         else:
             tg_send_and_panel(
                 chat_id,
@@ -1755,6 +1762,7 @@ def handle_incoming_message(
                 cfg=cfg,
                 short_history=short_history_text(s),
                 current_topic=s.get("topic"),
+                skip_gpt=_web_chat,
             )
             logging.info(
                 "TOPIC_CHECK user_id=%s text=%r detected=%s",
@@ -1863,6 +1871,7 @@ def handle_incoming_message(
                 cfg=cfg,
                 short_history=short_history_text(s),
                 current_topic=s.get("topic"),
+                skip_gpt=_web_chat,
             )
             logging.info(
                 "TOPIC_CHECK user_id=%s text=%r detected=%s",
@@ -1894,6 +1903,7 @@ def handle_incoming_message(
             cfg=cfg,
             short_history=short_history_text(s),
             current_topic=s.get("topic"),
+            skip_gpt=_web_chat,
         )
 
     kb_chunks = collect_kb_chunks(s["topic"], s["mode"])
