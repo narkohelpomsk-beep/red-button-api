@@ -556,6 +556,21 @@ def init_db():
     );
     """
     )
+    pg_exec(
+        """
+    CREATE TABLE IF NOT EXISTS phone_leads(
+      id SERIAL PRIMARY KEY,
+      user_id TEXT,
+      phone TEXT NOT NULL,
+      topic TEXT,
+      platform TEXT,
+      username TEXT,
+      full_name TEXT,
+      email_sent INTEGER DEFAULT 0,
+      created_at INTEGER
+    );
+    """
+    )
     logging.info("Postgres schema ensured")
 
 
@@ -911,6 +926,24 @@ def web_chat_message():
         return jsonify(_web_run(meta, text))
     except Exception as exc:
         logging.exception("web_chat_message failed")
+        ack = "Принято, скоро с вами свяжемся. Продолжим пока разговор здесь?"
+        if phone or (text and extract_phone_number(text)):
+            pn = phone or extract_phone_number(text) or text
+            notify_phone_shared(
+                meta["user"],
+                str(pn),
+                None,
+                platform="site",
+            )
+            return jsonify(
+                {
+                    "session_id": meta["session_id"],
+                    "reply": ack,
+                    "buttons": [],
+                    "awaiting_phone": False,
+                    "lead_saved": True,
+                }
+            )
         return jsonify({"error": str(exc)}), 500
 
 
@@ -1074,44 +1107,95 @@ def notify_phone_shared(
     topic: Optional[str] = None,
     platform: str = "",
 ):
-    """
-    Уведомление: номер телефона (Telegram + почта).
-    """
-    username = user.get("username") or ""
-    first_name = user.get("first_name") or ""
-    last_name = user.get("last_name") or ""
-    full_name = f"{first_name} {last_name}".strip()
+    """Номер телефона: Telegram + почта + БД (всё в фоне, не блокирует ответ чата)."""
+    threading.Thread(
+        target=_notify_phone_shared_impl,
+        args=(user, phone_number, topic, platform),
+        daemon=True,
+    ).start()
 
-    username_line = f"username: @{username}" if username else "username: -"
 
-    text = (
-        "📞 Пользователь оставил номер телефона\n"
-        f"user_id: {user.get('id')}\n"
-        f"{username_line}\n"
-        f"name: {full_name}\n"
-        f"phone: {phone_number}\n"
-        f"topic: {topic or '-'}"
-    )
-    if platform:
-        text += f"\nplatform: {platform}"
+def _notify_phone_shared_impl(
+    user: Dict[str, Any],
+    phone_number: str,
+    topic: Optional[str] = None,
+    platform: str = "",
+):
+    try:
+        username = user.get("username") or ""
+        first_name = user.get("first_name") or ""
+        last_name = user.get("last_name") or ""
+        full_name = f"{first_name} {last_name}".strip()
 
-    if ADMIN_ALERT_CHAT_ID and TELEGRAM_TOKEN:
-        tg_send(ADMIN_ALERT_CHAT_ID, text)
+        try:
+            pg_exec(
+                """
+                INSERT INTO phone_leads(user_id, phone, topic, platform, username, full_name, email_sent, created_at)
+                VALUES (%s,%s,%s,%s,%s,%s,0,%s)
+                """,
+                (
+                    str(user.get("id") or ""),
+                    str(phone_number),
+                    topic,
+                    platform,
+                    username,
+                    full_name,
+                    int(time.time()),
+                ),
+            )
+        except Exception:
+            logging.exception("phone_leads insert failed")
 
-    if (
-        topic == "bullying"
-        and BULLYING_ALERT_CHAT_ID
-        and TELEGRAM_TOKEN
-        and str(BULLYING_ALERT_CHAT_ID) != str(ADMIN_ALERT_CHAT_ID)
-    ):
-        logging.info(
-            "BULLYING_DUPLICATE_PHONE_SEND user_id=%s chat_id=%s",
-            user.get("id"),
-            BULLYING_ALERT_CHAT_ID,
+        username_line = f"username: @{username}" if username else "username: -"
+        text = (
+            "📞 Пользователь оставил номер телефона\n"
+            f"user_id: {user.get('id')}\n"
+            f"{username_line}\n"
+            f"name: {full_name}\n"
+            f"phone: {phone_number}\n"
+            f"topic: {topic or '-'}"
         )
-        tg_send(BULLYING_ALERT_CHAT_ID, text)
+        if platform:
+            text += f"\nplatform: {platform}"
 
-    email_notify.notify_phone_email(user, phone_number, topic, platform=platform)
+        if ADMIN_ALERT_CHAT_ID and TELEGRAM_TOKEN:
+            tg_send(ADMIN_ALERT_CHAT_ID, text)
+
+        if (
+            topic == "bullying"
+            and BULLYING_ALERT_CHAT_ID
+            and TELEGRAM_TOKEN
+            and str(BULLYING_ALERT_CHAT_ID) != str(ADMIN_ALERT_CHAT_ID)
+        ):
+            tg_send(BULLYING_ALERT_CHAT_ID, text)
+
+        email_ok = email_notify.notify_phone_email(
+            user, phone_number, topic, platform=platform
+        )
+        if email_ok:
+            try:
+                pg_exec(
+                    """
+                    UPDATE phone_leads SET email_sent=1
+                    WHERE id = (
+                      SELECT id FROM phone_leads
+                      WHERE phone=%s AND user_id=%s
+                      ORDER BY created_at DESC LIMIT 1
+                    )
+                    """,
+                    (str(phone_number), str(user.get("id") or "")),
+                )
+            except Exception:
+                logging.exception("phone_leads email_sent update failed")
+        else:
+            logging.error(
+                "PHONE_EMAIL_NOT_SENT phone=%s user_id=%s platform=%s",
+                phone_number,
+                user.get("id"),
+                platform,
+            )
+    except Exception:
+        logging.exception("notify_phone_shared failed phone=%s", phone_number)
 
 
 def tg_hide_keyboard(chat_id):
@@ -1150,6 +1234,7 @@ def gpt_reply(
     risk_detected,
     recent_replies: Optional[List[str]] = None,
     call_state: Optional[str] = None,
+    fast: bool = False,
 ):
     system_prompt = (
         "Ты — Денис, консультант проекта «Red Button». "
@@ -1231,9 +1316,11 @@ def gpt_reply(
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_content},
         ],
-        "max_tokens": 220,
+        "max_tokens": 120 if fast else 220,
     }
-    for attempt in range(2):
+    attempts = 1 if fast else 2
+    req_timeout = 14 if fast else 28
+    for attempt in range(attempts):
         try:
             r = requests.post(
                 "https://api.openai.com/v1/chat/completions",
@@ -1242,7 +1329,7 @@ def gpt_reply(
                     "Content-Type": "application/json",
                 },
                 json=payload,
-                timeout=28,
+                timeout=req_timeout,
             )
             r.raise_for_status()
             return (
@@ -1480,13 +1567,16 @@ def handle_incoming_message(
 
     _web_chat = str(chat_id).startswith("web:")
 
-    if update_id is not None and not mark_update_processed(update_id):
+    if update_id is not None and not _web_chat and not mark_update_processed(update_id):
         return {"ok": True}
 
     if msg is None:
         msg = {}
 
-    upsert_user(user)
+    if _web_chat:
+        threading.Thread(target=upsert_user, args=(user,), daemon=True).start()
+    else:
+        upsert_user(user)
 
     # диагностика
     if text.lower() == "/whoami":
@@ -1669,7 +1759,14 @@ def handle_incoming_message(
         s["call_state"] = "phone_received"
 
         push_history(s, "user", contact_phone)
-        save_message(user["id"], "user", contact_phone)
+        if _web_chat:
+            threading.Thread(
+                target=save_message,
+                args=(user["id"], "user", contact_phone),
+                daemon=True,
+            ).start()
+        else:
+            save_message(user["id"], "user", contact_phone)
 
         notify_phone_shared(
             user,
@@ -1682,7 +1779,14 @@ def handle_incoming_message(
         tg_send_and_panel(chat_id, user, ack_text, remove_keyboard=True)
 
         push_history(s, "assistant", ack_text)
-        save_message(user["id"], "assistant", ack_text)
+        if _web_chat:
+            threading.Thread(
+                target=save_message,
+                args=(user["id"], "assistant", ack_text),
+                daemon=True,
+            ).start()
+        else:
+            save_message(user["id"], "assistant", ack_text)
 
         save_session(user["id"], s)
         return {"ok": True}
@@ -1711,22 +1815,30 @@ def handle_incoming_message(
 
     # выбор режима self/relatives
     if s["mode"] is None:
+        site_triage_answer = False
         if text == cfg["buttons"]["mode_self"]:
             s["mode"] = "self"
         elif text == cfg["buttons"]["mode_relative"]:
             s["mode"] = "relatives"
         elif _detect_platform(chat_id, user) == "site":
-            # На сайте не заставляем жать кнопку — сразу консультация
-            s["mode"] = "self"
-            guess = detect_topic(
-                text,
-                cfg=cfg,
-                short_history=short_history_text(s),
-                current_topic=s.get("topic"),
-                skip_gpt=True,
-            )
-            if guess:
-                s["topic"] = guess
+            lower = text.lower().strip()
+            btn_yes = cfg["buttons"]["yes"].lower()
+            btn_no = cfg["buttons"]["no"].lower()
+            if lower in (btn_yes, btn_no):
+                # Сессия могла сброситься (мобильный браузер) — это ответ на триаж
+                s["mode"] = "self"
+                site_triage_answer = True
+            else:
+                s["mode"] = "self"
+                guess = detect_topic(
+                    text,
+                    cfg=cfg,
+                    short_history=short_history_text(s),
+                    current_topic=s.get("topic"),
+                    skip_gpt=True,
+                )
+                if guess:
+                    s["topic"] = guess
         else:
             tg_send_and_panel(
                 chat_id,
@@ -1742,14 +1854,22 @@ def handle_incoming_message(
             s.get("stage"),
             s.get("topic"),
         )
-
-        tg_send_and_panel(
-            chat_id,
-            user,
-            cfg["triage_question"],
-            remove_keyboard=True,
-        )
-        return {"ok": True}
+        if site_triage_answer:
+            pass  # ниже — обработка ответа «Да»/«Нет» на триаже
+        else:
+            tg_send_and_panel(
+                chat_id,
+                user,
+                cfg["triage_question"],
+                buttons=[
+                    [
+                        {"text": cfg["buttons"]["yes"]},
+                        {"text": cfg["buttons"]["no"]},
+                    ]
+                ],
+                remove_keyboard=True,
+            )
+            return {"ok": True}
 
     # === если пользователь оставил номер телефона текстом ===
     phone_number = extract_phone_number(text)
@@ -1773,7 +1893,12 @@ def handle_incoming_message(
             s["topic"] = detected_topic
 
         push_history(s, "user", text)
-        save_message(user["id"], "user", text)
+        if _web_chat:
+            threading.Thread(
+                target=save_message, args=(user["id"], "user", text), daemon=True
+            ).start()
+        else:
+            save_message(user["id"], "user", text)
 
         notify_phone_shared(
             user,
@@ -1786,7 +1911,14 @@ def handle_incoming_message(
         tg_send_and_panel(chat_id, user, ack_text, remove_keyboard=True)
 
         push_history(s, "assistant", ack_text)
-        save_message(user["id"], "assistant", ack_text)
+        if _web_chat:
+            threading.Thread(
+                target=save_message,
+                args=(user["id"], "assistant", ack_text),
+                daemon=True,
+            ).start()
+        else:
+            save_message(user["id"], "assistant", ack_text)
 
         save_session(user["id"], s)
         return {"ok": True}
@@ -1849,7 +1981,7 @@ def handle_incoming_message(
         return {"ok": True}
 
     def push(role, txt):
-        if role == "user":
+        if role == "user" and not _web_chat:
             send_to_panel(
                 chat_id,
                 user,
@@ -1859,7 +1991,12 @@ def handle_incoming_message(
                 telegram_message_id=msg.get("message_id"),
             )
         push_history(s, role, txt)
-        save_message(user["id"], role, txt)
+        if _web_chat:
+            threading.Thread(
+                target=save_message, args=(user["id"], role, txt), daemon=True
+            ).start()
+        else:
+            save_message(user["id"], role, txt)
 
     push("user", text)
 
@@ -1920,6 +2057,7 @@ def handle_incoming_message(
             risk_detected=risk,
             recent_replies=recent_replies,
             call_state=s.get("call_state"),
+            fast=_web_chat,
         )
     except Exception:
         logging.exception("GPT error")

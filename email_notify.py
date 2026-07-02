@@ -6,13 +6,16 @@ import logging
 import os
 import smtplib
 import ssl
+from email.header import Header
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from email.utils import formataddr, formatdate, make_msgid
+from email.utils import formatdate, make_msgid
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_ALERT_TO = "rc-impuls@yandex.ru"
 
 
 def _split_addrs(raw: str) -> List[str]:
@@ -25,7 +28,9 @@ def _split_addrs(raw: str) -> List[str]:
 
 
 def alert_recipients(topic: Optional[str] = None) -> List[str]:
-    main = _split_addrs(os.getenv("ALERT_EMAIL_TO") or os.getenv("SMTP_TO") or "")
+    main = _split_addrs(
+        os.getenv("ALERT_EMAIL_TO") or os.getenv("SMTP_TO") or DEFAULT_ALERT_TO
+    )
     if topic == "bullying":
         extra = _split_addrs(os.getenv("BULLYING_ALERT_EMAIL_TO") or "")
         if extra:
@@ -49,6 +54,59 @@ def _smtp_from() -> str:
     )
 
 
+def _build_message(
+    subject: str,
+    body: str,
+    recipients: List[str],
+    *,
+    attachment: Optional[bytes] = None,
+    filename: Optional[str] = None,
+    simple_from: bool = False,
+) -> MIMEMultipart | MIMEText:
+    from_addr = _smtp_from()
+    domain = from_addr.split("@")[-1] if "@" in from_addr else "yandex.ru"
+
+    if attachment and filename:
+        msg: MIMEMultipart | MIMEText = MIMEMultipart()
+        msg.attach(MIMEText(body or "", "plain", "utf-8"))
+        part = MIMEApplication(attachment, Name=filename)
+        part.add_header("Content-Disposition", "attachment", filename=filename)
+        msg.attach(part)
+    else:
+        msg = MIMEText(body or "", "plain", "utf-8")
+
+    msg["Subject"] = Header(subject[:200], "utf-8")
+    msg["From"] = from_addr if simple_from else from_addr
+    msg["To"] = ", ".join(recipients)
+    msg["Reply-To"] = from_addr
+    msg["Date"] = formatdate(localtime=True)
+    msg["Message-ID"] = make_msgid(domain=domain)
+    return msg
+
+
+def _smtp_send(msg: MIMEMultipart | MIMEText, recipients: List[str], timeout: int = 15) -> None:
+    host = (os.getenv("SMTP_HOST") or "smtp.yandex.ru").strip()
+    port = int((os.getenv("SMTP_PORT") or "465").strip())
+    user = (os.getenv("SMTP_USER") or "").strip()
+    password = (os.getenv("SMTP_PASSWORD") or "").strip()
+    use_ssl = (os.getenv("SMTP_SSL") or "1").strip().lower() in ("1", "true", "yes")
+    use_tls = (os.getenv("SMTP_USE_TLS") or "").strip().lower() in ("1", "true", "yes")
+    from_addr = _smtp_from()
+
+    if use_ssl and port == 465:
+        with smtplib.SMTP_SSL(
+            host, port, context=ssl.create_default_context(), timeout=timeout
+        ) as smtp:
+            smtp.login(user, password)
+            smtp.sendmail(from_addr, recipients, msg.as_string())
+    else:
+        with smtplib.SMTP(host, port, timeout=timeout) as smtp:
+            if use_tls:
+                smtp.starttls(context=ssl.create_default_context())
+            smtp.login(user, password)
+            smtp.sendmail(from_addr, recipients, msg.as_string())
+
+
 def send_email(
     subject: str,
     body: str,
@@ -56,54 +114,55 @@ def send_email(
     to: Optional[List[str]] = None,
     attachment: Optional[bytes] = None,
     filename: Optional[str] = None,
+    phone_fast: bool = False,
 ) -> bool:
     recipients = to or alert_recipients()
     if not recipients:
+        logger.warning("Email: no recipients")
         return False
 
-    host = (os.getenv("SMTP_HOST") or "smtp.yandex.com").strip()
-    port = int((os.getenv("SMTP_PORT") or "465").strip())
     user = (os.getenv("SMTP_USER") or "").strip()
     password = (os.getenv("SMTP_PASSWORD") or "").strip()
-    use_ssl = (os.getenv("SMTP_SSL") or "1").strip().lower() in ("1", "true", "yes")
-    use_tls = (os.getenv("SMTP_USE_TLS") or "").strip().lower() in ("1", "true", "yes")
-
-    if not (host and user and password):
-        logger.warning("SMTP not configured (SMTP_HOST/USER/PASSWORD)")
+    if not (user and password):
+        logger.warning("SMTP not configured (SMTP_USER/SMTP_PASSWORD)")
         return False
 
-    from_addr = _smtp_from()
-    domain = from_addr.split("@")[-1] if "@" in from_addr else "localhost"
+    attempts = [(subject, body, False)]
+    if phone_fast:
+        attempts = [("Red Button: phone", body, True)]
+    elif subject != "Red Button: phone":
+        attempts.append(("Red Button: phone", body, True))
 
-    msg = MIMEMultipart()
-    msg["Subject"] = subject[:200]
-    msg["From"] = formataddr(("Красная кнопка (бот)", from_addr))
-    msg["To"] = ", ".join(recipients)
-    msg["Date"] = formatdate(localtime=True)
-    msg["Message-ID"] = make_msgid(domain=domain)
-    msg.attach(MIMEText(body or "", "plain", "utf-8"))
+    smtp_timeout = 8 if phone_fast else 15
 
-    if attachment and filename:
-        part = MIMEApplication(attachment, Name=filename)
-        part.add_header("Content-Disposition", "attachment", filename=filename)
-        msg.attach(part)
+    last_err: Optional[Exception] = None
+    for subj, text, simple in attempts:
+        try:
+            msg = _build_message(
+                subj,
+                text,
+                recipients,
+                attachment=attachment if not simple else None,
+                filename=filename if not simple else None,
+                simple_from=simple,
+            )
+            _smtp_send(msg, recipients, timeout=smtp_timeout)
+            logger.info("Email sent: %s -> %s", subj, recipients)
+            return True
+        except smtplib.SMTPDataError as exc:
+            last_err = exc
+            code = int(getattr(exc, "smtp_code", 0) or 0)
+            logger.warning("Email SMTPDataError (%s): %s -> %s", code, subj, recipients)
+            if code != 554:
+                break
+        except Exception as exc:
+            last_err = exc
+            logger.exception("Email send failed: %s -> %s", subj, recipients)
+            break
 
-    try:
-        if use_ssl and port == 465:
-            with smtplib.SMTP_SSL(host, port, context=ssl.create_default_context()) as smtp:
-                smtp.login(user, password)
-                smtp.sendmail(_smtp_from(), recipients, msg.as_string())
-        else:
-            with smtplib.SMTP(host, port, timeout=60) as smtp:
-                if use_tls:
-                    smtp.starttls(context=ssl.create_default_context())
-                smtp.login(user, password)
-                smtp.sendmail(_smtp_from(), recipients, msg.as_string())
-        logger.info("Email sent: %s -> %s", subject, recipients)
-        return True
-    except Exception:
-        logger.exception("Email send failed: %s", subject)
-        return False
+    if last_err:
+        logger.error("Email NOT delivered to %s: %s", recipients, last_err)
+    return False
 
 
 def _user_block(user: Dict[str, Any], platform: str = "") -> str:
@@ -129,16 +188,25 @@ def notify_phone_email(
     platform: str = "",
 ) -> bool:
     body = (
-        "Пользователь оставил номер телефона (Красная кнопка)\n\n"
+        "Номер телефона с сайта/бота «Красная кнопка»\n\n"
         f"{_user_block(user, platform)}\n"
         f"phone: {phone_number}\n"
         f"topic: {topic or '-'}\n"
     )
-    return send_email(
-        subject="[Красная кнопка] Номер телефона",
+    ok = send_email(
+        subject="Красная кнопка: номер телефона",
         body=body,
         to=alert_recipients(topic),
+        phone_fast=True,
     )
+    if not ok:
+        logger.error(
+            "PHONE_EMAIL_FAILED phone=%s user_id=%s platform=%s",
+            phone_number,
+            user.get("id"),
+            platform,
+        )
+    return ok
 
 
 def notify_callback_email(
@@ -155,7 +223,7 @@ def notify_callback_email(
     if note:
         body += f"\n{note}\n"
     return send_email(
-        subject="[Красная кнопка] Заявка на звонок",
+        subject="Красная кнопка: заявка на звонок",
         body=body,
         to=alert_recipients(topic),
     )
@@ -171,7 +239,7 @@ def notify_dialog_email(
     body = caption + "\n\nТранскрипт во вложении."
     uid = user.get("id") or user.get("user_id")
     return send_email(
-        subject=f"[Красная кнопка] Диалог {uid}",
+        subject=f"Красная кнопка: диалог {uid}",
         body=body,
         to=alert_recipients(topic),
         attachment=transcript,
