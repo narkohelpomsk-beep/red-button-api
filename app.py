@@ -2346,10 +2346,12 @@ def export_worker():
 # ===================== Health =====================
 @app.route("/", methods=["GET"])
 def health():
+    tg_ok = bool(ADMIN_ALERT_CHAT_ID and TELEGRAM_TOKEN)
     return jsonify(
         {
             "ok": True,
             "email": email_notify.email_enabled(),
+            "telegram": tg_ok,
             "max": max_notify.max_enabled(),
         }
     )
