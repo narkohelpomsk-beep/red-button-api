@@ -36,6 +36,7 @@ from knowledge.parser import parse_admin_text
 from knowledge.validator import validate_rule_json
 from knowledge.writer import save_rule_atomic
 import email_notify
+import max_notify
 
 _BG_EXECUTOR = ThreadPoolExecutor(max_workers=4, thread_name_prefix="rb_bg")
 
@@ -1271,6 +1272,11 @@ def _notify_phone_shared_impl(
 
         if ADMIN_ALERT_CHAT_ID and TELEGRAM_TOKEN:
             tg_send(ADMIN_ALERT_CHAT_ID, text)
+
+        if max_notify.max_enabled():
+            max_notify.notify_phone_max(
+                user, phone_number, topic, platform=platform
+            )
 
         if (
             topic == "bullying"
