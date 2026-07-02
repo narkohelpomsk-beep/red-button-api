@@ -6,7 +6,7 @@ from typing import Dict, Any, List, Optional
 from flask import Flask, request, jsonify
 import requests
 import psycopg2
-from psycopg2.pool import SimpleConnectionPool
+from psycopg2.pool import ThreadedConnectionPool
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -34,13 +34,14 @@ def send_to_panel(chat_id, user, text, direction):
 from knowledge.parser import parse_admin_text
 from knowledge.validator import validate_rule_json
 from knowledge.writer import save_rule_atomic
+import email_notify
 
 # ===================== ENV =====================
 TELEGRAM_TOKEN = (os.getenv("TELEGRAM_BOT_TOKEN") or "").strip()
 OPENAI_KEY     = (os.getenv("OPENAI_API_KEY") or "").strip()
 WEBHOOK_URL    = (os.getenv("WEBHOOK_URL") or "").strip()
 DATABASE_URL   = (os.getenv("DATABASE_URL") or "").strip()
-PANEL_API_URL     = (os.getenv("PANEL_API_URL") or "http://127.0.0.1:8081").strip()
+PANEL_API_URL     = (os.getenv("PANEL_API_URL") or "").strip()
 PANEL_API_SECRET  = (os.getenv("PANEL_API_SECRET") or "").strip()
 
 
@@ -192,6 +193,11 @@ def detect_topic(
     if not t:
         return None
 
+    # Нюхательный табак / вейп — частый запрос на сайте
+    if any(k in t for k in ("снуп", "snuf", "snus", "насвай", "nasvay", "нюхательн", "вейп", "vape", "спрей")):
+        logging.info("TOPIC_ALIAS_MATCH text=%r alias=nasvay/snus topic=stimulants", text)
+        return "stimulants"
+
     # 1. Сначала жёсткий alias-match из KB
     for alias, ptr in ALIAS_INDEX:
         if alias in t:
@@ -201,10 +207,17 @@ def detect_topic(
             )
             return ptr["topic"]
 
-    # 2. Затем GPT-классификация
     if cfg is None:
         cfg = load_cfg()
+    for v in (cfg.get("buttons") or {}).values():
+        if t == str(v).lower().strip():
+            return None
+    if t in ("да", "нет", "yes", "no", "начать", "start", "/start", "привет", "здравствуйте"):
+        return None
+    if len(t) <= 24 and not any(kw in t for kw in ("ломк", "наркот", "алког", "пьян", "булл", "травл", "игром", "зависим", "суицид", "умер", "умру")):
+        return None
 
+    # 2. Затем GPT-классификация
     topic_from_gpt = detect_topic_gpt(
         cfg=cfg,
         text=text,
@@ -372,28 +385,90 @@ def is_admin(uid: Any) -> bool:
 # ===================== PostgreSQL =====================
 POOL_MIN = 1
 POOL_MAX = 10
-_pg_pool: Optional[SimpleConnectionPool] = None
+_pg_pool: Optional[ThreadedConnectionPool] = None
+_pg_pool_lock = threading.Lock()
+
+# keepalive — чтобы пулер Supabase не «ронял» простаивающие соединения,
+# из-за чего раньше падали запросы (server closed the connection unexpectedly).
+_PG_CONNECT_KWARGS = dict(
+    connect_timeout=10,
+    keepalives=1,
+    keepalives_idle=30,
+    keepalives_interval=10,
+    keepalives_count=5,
+)
 
 
-def pg_pool() -> SimpleConnectionPool:
+def pg_pool() -> ThreadedConnectionPool:
     global _pg_pool
     if _pg_pool is None:
-        _pg_pool = SimpleConnectionPool(POOL_MIN, POOL_MAX, dsn=DATABASE_URL)
-        logging.info("Postgres pool created")
+        with _pg_pool_lock:
+            if _pg_pool is None:
+                _pg_pool = ThreadedConnectionPool(
+                    POOL_MIN, POOL_MAX, dsn=DATABASE_URL, **_PG_CONNECT_KWARGS
+                )
+                logging.info("Postgres pool created")
     return _pg_pool
 
 
-def pg_exec(sql: str, params=None, fetch=False):
-    pool = pg_pool()
-    conn = pool.getconn()
-    try:
-        conn.autocommit = True
-        with conn.cursor() as cur:
-            cur.execute(sql, params or ())
-            if fetch:
-                return cur.fetchall()
-    finally:
-        pool.putconn(conn)
+def reset_pg_pool() -> None:
+    """Полностью пересоздать пул (когда соединения «протухли»)."""
+    global _pg_pool
+    with _pg_pool_lock:
+        old = _pg_pool
+        _pg_pool = None
+    if old is not None:
+        try:
+            old.closeall()
+        except Exception:
+            pass
+
+
+def pg_exec(sql: str, params=None, fetch=False, _retries: int = 4):
+    """Выполнить запрос с авто-восстановлением соединения.
+
+    Пулер Supabase периодически закрывает простаивающие соединения; раньше это
+    приводило к OperationalError и падению чата/бота. Теперь мёртвое соединение
+    выбрасывается, пул при необходимости пересоздаётся, запрос повторяется.
+    """
+    last_err: Optional[Exception] = None
+    for attempt in range(_retries):
+        pool = pg_pool()
+        conn = None
+        try:
+            conn = pool.getconn()
+            conn.autocommit = True
+            with conn.cursor() as cur:
+                cur.execute(sql, params or ())
+                result = cur.fetchall() if fetch else None
+            pool.putconn(conn)
+            return result
+        except (psycopg2.OperationalError, psycopg2.InterfaceError) as e:
+            last_err = e
+            # выбрасываем мёртвое соединение из пула
+            if conn is not None:
+                try:
+                    pool.putconn(conn, close=True)
+                except Exception:
+                    pass
+                conn = None
+            # после первой неудачи пересоздаём весь пул
+            if attempt >= 1:
+                reset_pg_pool()
+            logging.warning(
+                "pg_exec повтор %s/%s после %s",
+                attempt + 1, _retries, e.__class__.__name__,
+            )
+            time.sleep(min(1.5 * (attempt + 1), 5.0))
+        except Exception:
+            if conn is not None:
+                try:
+                    pool.putconn(conn)
+                except Exception:
+                    pass
+            raise
+    # все попытки исчерпаны
+    raise last_err if last_err else RuntimeError("pg_exec failed")
 
 
 def init_db():
@@ -837,6 +912,8 @@ def panel_headers():
     return headers
 
 def send_to_panel(chat_id, user, text, direction, sender_type=None, telegram_message_id=None):
+    if not PANEL_API_URL:
+        return
     try:
         name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
         payload = {
@@ -862,6 +939,8 @@ def send_to_panel(chat_id, user, text, direction, sender_type=None, telegram_mes
 
 def panel_bot_enabled(chat_id) -> bool:
     if str(chat_id).startswith("web:"):
+        return True
+    if not PANEL_API_URL:
         return True
     try:
         r = requests.get(
@@ -965,10 +1044,25 @@ def tg_send_document(
         logging.exception("sendDocument exception")
         return False
 
-def notify_phone_shared(user: Dict[str, Any], phone_number: str, topic: Optional[str] = None):
+def _detect_platform(chat_id: Any, user: Dict[str, Any]) -> str:
+    cid = str(chat_id or "")
+    if cid.startswith("web:"):
+        return "site"
+    if (user.get("first_name") or "") == "VK":
+        return "vk"
+    if (user.get("username") or "").lower() == "web":
+        return "site"
+    return "telegram"
+
+
+def notify_phone_shared(
+    user: Dict[str, Any],
+    phone_number: str,
+    topic: Optional[str] = None,
+    platform: str = "",
+):
     """
-    Отправляет в админ-чат уведомление о том, что пользователь оставил номер телефона.
-    Для bullying дублирует в отдельную группу.
+    Уведомление: номер телефона (Telegram + почта).
     """
     username = user.get("username") or ""
     first_name = user.get("first_name") or ""
@@ -985,13 +1079,16 @@ def notify_phone_shared(user: Dict[str, Any], phone_number: str, topic: Optional
         f"phone: {phone_number}\n"
         f"topic: {topic or '-'}"
     )
+    if platform:
+        text += f"\nplatform: {platform}"
 
-    if ADMIN_ALERT_CHAT_ID:
+    if ADMIN_ALERT_CHAT_ID and TELEGRAM_TOKEN:
         tg_send(ADMIN_ALERT_CHAT_ID, text)
 
     if (
         topic == "bullying"
         and BULLYING_ALERT_CHAT_ID
+        and TELEGRAM_TOKEN
         and str(BULLYING_ALERT_CHAT_ID) != str(ADMIN_ALERT_CHAT_ID)
     ):
         logging.info(
@@ -1000,6 +1097,8 @@ def notify_phone_shared(user: Dict[str, Any], phone_number: str, topic: Optional
             BULLYING_ALERT_CHAT_ID,
         )
         tg_send(BULLYING_ALERT_CHAT_ID, text)
+
+    email_notify.notify_phone_email(user, phone_number, topic, platform=platform)
 
 
 def tg_hide_keyboard(chat_id):
@@ -1130,7 +1229,7 @@ def gpt_reply(
                     "Content-Type": "application/json",
                 },
                 json=payload,
-                timeout=40,
+                timeout=28,
             )
             r.raise_for_status()
             return (
@@ -1139,7 +1238,7 @@ def gpt_reply(
             )
         except Exception:
             if attempt == 0:
-                time.sleep(0.8)
+                time.sleep(0.3)
             else:
                 raise
 
@@ -1198,7 +1297,7 @@ def detect_topic_gpt(
                     "Content-Type": "application/json",
                 },
                 json=payload,
-                timeout=25,
+                timeout=12,
             )
             r.raise_for_status()
 
@@ -1216,7 +1315,7 @@ def detect_topic_gpt(
                 )
                 return None
 
-            if topic == "unknown":
+            if topic == "unknown" or confidence < 0.55:
                 logging.info(
                     "TOPIC_GPT text=%r topic=unknown confidence=%.3f reason=%r",
                     text, confidence, reason
@@ -1231,7 +1330,7 @@ def detect_topic_gpt(
 
         except Exception:
             if attempt == 0:
-                time.sleep(0.8)
+                time.sleep(0.3)
             else:
                 logging.exception("TOPIC_GPT_FAILED text=%r", text)
                 return None
@@ -1524,6 +1623,13 @@ def handle_incoming_message(
                 [{"text": cfg["buttons"]["send_contact"], "request_contact": True}]
             ],
         )
+        s_tmp = load_session(user["id"]) or {}
+        email_notify.notify_callback_email(
+            user,
+            s_tmp.get("topic"),
+            platform=_detect_platform(chat_id, user),
+            note="Кнопка: «Мне нужно чтобы мне позвонили»",
+        )
         return {"ok": True}
 
     # сессия диалога
@@ -1550,7 +1656,12 @@ def handle_incoming_message(
         push_history(s, "user", contact_phone)
         save_message(user["id"], "user", contact_phone)
 
-        notify_phone_shared(user, contact_phone, s.get("topic"))
+        notify_phone_shared(
+            user,
+            contact_phone,
+            s.get("topic"),
+            platform=_detect_platform(chat_id, user),
+        )
 
         ack_text = "Принято, скоро с вами свяжемся. Продолжим пока разговор здесь?"
         tg_send_and_panel(chat_id, user, ack_text, remove_keyboard=True)
@@ -1589,6 +1700,26 @@ def handle_incoming_message(
             s["mode"] = "self"
         elif text == cfg["buttons"]["mode_relative"]:
             s["mode"] = "relatives"
+        elif _detect_platform(chat_id, user) == "site":
+            # На сайте часто пишут сразу «снуп», «мне плохо» — не заставляем жать кнопку
+            guess = detect_topic(
+                text,
+                cfg=cfg,
+                short_history=short_history_text(s),
+                current_topic=s.get("topic"),
+            )
+            if guess or len((text or "").strip()) >= 6:
+                s["mode"] = "self"
+                if guess:
+                    s["topic"] = guess
+            else:
+                tg_send_and_panel(
+                    chat_id,
+                    user,
+                    "Пожалуйста, выберите вариант на кнопках ниже.",
+                    buttons=main_menu(cfg),
+                )
+                return {"ok": True}
         else:
             tg_send_and_panel(
                 chat_id,
@@ -1636,7 +1767,12 @@ def handle_incoming_message(
         push_history(s, "user", text)
         save_message(user["id"], "user", text)
 
-        notify_phone_shared(user, phone_number, s.get("topic"))
+        notify_phone_shared(
+            user,
+            phone_number,
+            s.get("topic"),
+            platform=_detect_platform(chat_id, user),
+        )
 
         ack_text = "Принято, скоро с вами свяжемся. Продолжим пока разговор здесь?"
         tg_send_and_panel(chat_id, user, ack_text, remove_keyboard=True)
@@ -1664,6 +1800,12 @@ def handle_incoming_message(
         if lower == btn_yes:
             s["call_state"] = "accepted"
             save_session(user["id"], s)
+            email_notify.notify_callback_email(
+                user,
+                s.get("topic"),
+                platform=_detect_platform(chat_id, user),
+                note="Согласился на анонимный созвон",
+            )
             tg_send_and_panel(
                 chat_id,
                 user,
@@ -1888,7 +2030,7 @@ def _make_transcript_txt(
 
 
 def export_finished_dialogs_once():
-    if not ADMIN_ALERT_CHAT_ID:
+    if not ADMIN_ALERT_CHAT_ID and not email_notify.email_enabled():
         return
 
     now = int(time.time())
@@ -1958,8 +2100,14 @@ def export_finished_dialogs_once():
             f"сообщений: {len(msgs)}"
         )
 
-        ok_main = tg_send_document(
-            ADMIN_ALERT_CHAT_ID, body, filename, caption=caption
+        ok_main = True
+        if ADMIN_ALERT_CHAT_ID and TELEGRAM_TOKEN:
+            ok_main = tg_send_document(
+                ADMIN_ALERT_CHAT_ID, body, filename, caption=caption
+            )
+
+        ok_email = email_notify.notify_dialog_email(
+            user_card, caption, body, filename, topic
         )
 
         ok_bullying = True
@@ -1986,13 +2134,14 @@ def export_finished_dialogs_once():
                     filename,
                 )
 
-        if ok_main:
+        if ok_main or ok_email:
             _set_last_exported_ts(user_id, int(last_ts))
         else:
             logging.warning(
-                "MAIN_DIALOG_EXPORT_FAILED user_id=%s chat_id=%s filename=%s",
+                "DIALOG_EXPORT_FAILED user_id=%s tg=%s email=%s filename=%s",
                 user_id,
-                ADMIN_ALERT_CHAT_ID,
+                ok_main,
+                ok_email,
                 filename,
             )
 
@@ -2012,10 +2161,28 @@ def health():
 
 
 # ===================== MAIN =====================
+def init_db_resilient(max_attempts: int = 60, delay: float = 10.0) -> None:
+    """init_db с повторами: при кратковременной недоступности БД не падаем."""
+    for attempt in range(1, max_attempts + 1):
+        try:
+            init_db()
+            if attempt > 1:
+                logging.info("init_db успешно с попытки %s", attempt)
+            return
+        except Exception as e:
+            logging.warning(
+                "init_db попытка %s/%s не удалась: %s — повтор через %.0fс",
+                attempt, max_attempts, e, delay,
+            )
+            reset_pg_pool()
+            time.sleep(delay)
+    raise SystemExit("init_db: БД недоступна слишком долго — выходим (перезапустит watchdog)")
+
+
 if __name__ == "__main__":
     load_cfg()
     build_indexes()
-    init_db()
+    init_db_resilient()
     # стартуем фонового экспортёра
     t = threading.Thread(
         target=export_worker, name="export_worker", daemon=True
