@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os, json, random, time, logging, threading, re
+from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, Any, List, Optional
 from flask import Flask, request, jsonify
 import requests
@@ -35,6 +36,8 @@ from knowledge.parser import parse_admin_text
 from knowledge.validator import validate_rule_json
 from knowledge.writer import save_rule_atomic
 import email_notify
+
+_BG_EXECUTOR = ThreadPoolExecutor(max_workers=4, thread_name_prefix="rb_bg")
 
 # ===================== ENV =====================
 TELEGRAM_TOKEN = (os.getenv("TELEGRAM_BOT_TOKEN") or "").strip()
@@ -947,6 +950,45 @@ def web_chat_message():
         return jsonify({"error": str(exc)}), 500
 
 
+@app.route("/api/chat/lead", methods=["POST", "OPTIONS"])
+def web_chat_lead():
+    """Прямая передача номера с сайта (упрощённый чат и запасной канал)."""
+    if request.method == "OPTIONS":
+        return _web_cors(jsonify({"ok": True}))
+    body = request.get_json(silent=True) or {}
+    raw = (body.get("phone") or body.get("text") or "").strip()
+    phone_number = extract_phone_number(raw)
+    if not phone_number:
+        return jsonify({"error": "invalid_phone"}), 400
+
+    session_id = (body.get("session_id") or "").strip()
+    meta = _WEB_SESSIONS.get(session_id) if session_id else None
+    topic = body.get("topic")
+    if meta:
+        user = meta["user"]
+        if not topic:
+            topic = (_web_load_session_state(meta) or {}).get("topic")
+        notify_phone_shared(user, phone_number, topic, platform="site")
+    else:
+        user = {
+            "id": f"web-lead-{int(time.time())}",
+            "username": "site",
+            "first_name": "Сайт",
+            "last_name": "",
+        }
+        notify_phone_shared(user, phone_number, topic, platform="site")
+
+    logging.info("web_chat_lead phone=%s session=%s", phone_number, session_id or "-")
+    return jsonify({"ok": True, "lead_saved": True})
+
+
+def _web_load_session_state(meta: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    try:
+        return load_session(meta["user"]["id"])
+    except Exception:
+        return None
+
+
 def panel_headers():
     headers = {}
     if PANEL_API_SECRET:
@@ -1101,18 +1143,66 @@ def _detect_platform(chat_id: Any, user: Dict[str, Any]) -> str:
     return "telegram"
 
 
+def _accept_phone_lead(
+    user: Dict[str, Any],
+    s: Dict[str, Any],
+    chat_id: Any,
+    phone_number: str,
+    display_text: str,
+    *,
+    _web_chat: bool,
+    cfg: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    cfg = cfg or load_cfg()
+    s["call_state"] = "phone_received"
+
+    if s.get("topic") is None and display_text:
+        detected_topic = detect_topic(
+            display_text,
+            cfg=cfg,
+            short_history=short_history_text(s),
+            current_topic=s.get("topic"),
+            skip_gpt=_web_chat,
+        )
+        if detected_topic:
+            s["topic"] = detected_topic
+
+    shown = display_text or phone_number
+    push_history(s, "user", shown)
+    if _web_chat:
+        _BG_EXECUTOR.submit(save_message, user["id"], "user", shown)
+    else:
+        save_message(user["id"], "user", shown)
+
+    notify_phone_shared(
+        user,
+        phone_number,
+        s.get("topic"),
+        platform=_detect_platform(chat_id, user),
+    )
+
+    ack_text = "Принято, скоро с вами свяжемся. Продолжим пока разговор здесь?"
+    tg_send_and_panel(chat_id, user, ack_text, remove_keyboard=True)
+    push_history(s, "assistant", ack_text)
+    if _web_chat:
+        _BG_EXECUTOR.submit(save_message, user["id"], "assistant", ack_text)
+    else:
+        save_message(user["id"], "assistant", ack_text)
+
+    save_session(user["id"], s)
+    return {"ok": True}
+
+
 def notify_phone_shared(
     user: Dict[str, Any],
     phone_number: str,
     topic: Optional[str] = None,
     platform: str = "",
 ):
-    """Номер телефона: Telegram + почта + БД (всё в фоне, не блокирует ответ чата)."""
-    threading.Thread(
-        target=_notify_phone_shared_impl,
-        args=(user, phone_number, topic, platform),
-        daemon=True,
-    ).start()
+    """Номер телефона: Telegram + почта + БД (в фоне, не блокирует ответ чата)."""
+    _BG_EXECUTOR.submit(
+        _notify_phone_shared_impl, user, phone_number, topic, platform
+    )
 
 
 def _notify_phone_shared_impl(
@@ -1756,40 +1846,16 @@ def handle_incoming_message(
     # === если пользователь отправил контакт кнопкой Telegram ===
     if msg.get("contact") and str((msg.get("contact") or {}).get("user_id") or "") in ("", str(user.get("id"))):
         contact_phone = (msg.get("contact") or {}).get("phone_number") or ""
-        s["call_state"] = "phone_received"
-
-        push_history(s, "user", contact_phone)
-        if _web_chat:
-            threading.Thread(
-                target=save_message,
-                args=(user["id"], "user", contact_phone),
-                daemon=True,
-            ).start()
-        else:
-            save_message(user["id"], "user", contact_phone)
-
-        notify_phone_shared(
-            user,
-            contact_phone,
-            s.get("topic"),
-            platform=_detect_platform(chat_id, user),
+        return _accept_phone_lead(
+            user, s, chat_id, contact_phone, contact_phone, _web_chat=_web_chat, cfg=cfg
         )
 
-        ack_text = "Принято, скоро с вами свяжемся. Продолжим пока разговор здесь?"
-        tg_send_and_panel(chat_id, user, ack_text, remove_keyboard=True)
-
-        push_history(s, "assistant", ack_text)
-        if _web_chat:
-            threading.Thread(
-                target=save_message,
-                args=(user["id"], "assistant", ack_text),
-                daemon=True,
-            ).start()
-        else:
-            save_message(user["id"], "assistant", ack_text)
-
-        save_session(user["id"], s)
-        return {"ok": True}
+    # === номер телефона текстом — в любом этапе диалога ===
+    phone_early = extract_phone_number(text)
+    if phone_early and not msg.get("contact"):
+        return _accept_phone_lead(
+            user, s, chat_id, phone_early, text, _web_chat=_web_chat, cfg=cfg
+        )
 
     # полный сброс
     if text.lower() in ("/start", "start"):
@@ -1870,58 +1936,6 @@ def handle_incoming_message(
                 remove_keyboard=True,
             )
             return {"ok": True}
-
-    # === если пользователь оставил номер телефона текстом ===
-    phone_number = extract_phone_number(text)
-    if phone_number:
-        s["call_state"] = "phone_received"
-
-        if s["topic"] is None:
-            detected_topic = detect_topic(
-                text,
-                cfg=cfg,
-                short_history=short_history_text(s),
-                current_topic=s.get("topic"),
-                skip_gpt=_web_chat,
-            )
-            logging.info(
-                "TOPIC_CHECK user_id=%s text=%r detected=%s",
-                user.get("id"),
-                text,
-                detected_topic
-            )
-            s["topic"] = detected_topic
-
-        push_history(s, "user", text)
-        if _web_chat:
-            threading.Thread(
-                target=save_message, args=(user["id"], "user", text), daemon=True
-            ).start()
-        else:
-            save_message(user["id"], "user", text)
-
-        notify_phone_shared(
-            user,
-            phone_number,
-            s.get("topic"),
-            platform=_detect_platform(chat_id, user),
-        )
-
-        ack_text = "Принято, скоро с вами свяжемся. Продолжим пока разговор здесь?"
-        tg_send_and_panel(chat_id, user, ack_text, remove_keyboard=True)
-
-        push_history(s, "assistant", ack_text)
-        if _web_chat:
-            threading.Thread(
-                target=save_message,
-                args=(user["id"], "assistant", ack_text),
-                daemon=True,
-            ).start()
-        else:
-            save_message(user["id"], "assistant", ack_text)
-
-        save_session(user["id"], s)
-        return {"ok": True}
 
     # === обработка ответов на предложение созвона ===
     if s.get("call_state") == "offered":
@@ -2305,7 +2319,7 @@ def export_worker():
 # ===================== Health =====================
 @app.route("/", methods=["GET"])
 def health():
-    return "OK"
+    return jsonify({"ok": True, "email": email_notify.email_enabled()})
 
 
 # ===================== MAIN =====================
@@ -2326,6 +2340,16 @@ def init_db_resilient(max_attempts: int = 60, delay: float = 10.0) -> None:
             time.sleep(delay)
     raise SystemExit("init_db: БД недоступна слишком долго — выходим (перезапустит watchdog)")
 
+
+if email_notify.email_enabled():
+    logging.info(
+        "Email notifications ON -> %s",
+        ", ".join(email_notify.alert_recipients()),
+    )
+else:
+    logging.warning(
+        "Email notifications OFF — задайте SMTP_* и ALERT_EMAIL_TO в Render Environment"
+    )
 
 if __name__ == "__main__":
     load_cfg()
