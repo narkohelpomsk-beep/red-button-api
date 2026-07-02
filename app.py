@@ -365,6 +365,27 @@ def extract_phone_number(text: str) -> Optional[str]:
     return None
 
 
+def _normalize_button_text(text: str) -> str:
+    raw = (text or "").strip()
+    raw = re.sub(r"^[\U0001F300-\U0001FAFF\U00002600-\U000027BF]+\s*", "", raw)
+    return raw.lower()
+
+
+def _is_need_callback(text: str, cfg: Dict[str, Any]) -> bool:
+    want = _normalize_button_text(cfg["buttons"]["need_callback"])
+    got = _normalize_button_text(text)
+    if got == want:
+        return True
+    return got in (
+        "мне нужно чтобы мне позвонили",
+        "позвоните мне",
+        "перезвоните",
+        "перезвоните мне",
+        "нужен обратный звонок",
+        "хочу чтобы позвонили",
+    )
+
+
 # ===================== Admin utils =====================
 def _parse_admin_ids(env_str: str) -> List[str]:
     if not env_str:
@@ -1808,7 +1829,7 @@ def handle_incoming_message(
     #    return {"ok": True}
 
     # === кнопка "Мне нужно чтобы мне позвонили" ===
-    if text == cfg["buttons"]["need_callback"]:
+    if _is_need_callback(text, cfg):
         tg_send_and_panel(
             chat_id,
             user,
