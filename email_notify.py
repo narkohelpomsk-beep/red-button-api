@@ -129,7 +129,7 @@ def send_email(
 
     attempts = [(subject, body, False)]
     if phone_fast:
-        attempts = [("Red Button: phone", body, True)]
+        attempts = [("Красная кнопка: номер телефона", body, True)]
     elif subject != "Red Button: phone":
         attempts.append(("Red Button: phone", body, True))
 
