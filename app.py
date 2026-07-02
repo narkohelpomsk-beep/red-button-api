@@ -2346,7 +2346,13 @@ def export_worker():
 # ===================== Health =====================
 @app.route("/", methods=["GET"])
 def health():
-    return jsonify({"ok": True, "email": email_notify.email_enabled()})
+    return jsonify(
+        {
+            "ok": True,
+            "email": email_notify.email_enabled(),
+            "max": max_notify.max_enabled(),
+        }
+    )
 
 
 # ===================== MAIN =====================
