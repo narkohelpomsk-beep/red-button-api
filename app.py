@@ -1184,7 +1184,7 @@ def _accept_phone_lead(
             cfg=cfg,
             short_history=short_history_text(s),
             current_topic=s.get("topic"),
-            skip_gpt=_web_chat,
+            skip_gpt=False,
         )
         if detected_topic:
             s["topic"] = detected_topic
@@ -1950,19 +1950,28 @@ def handle_incoming_message(
         if site_triage_answer:
             pass  # ниже — обработка ответа «Да»/«Нет» на триаже
         else:
-            tg_send_and_panel(
-                chat_id,
-                user,
-                cfg["triage_question"],
-                buttons=[
-                    [
-                        {"text": cfg["buttons"]["yes"]},
-                        {"text": cfg["buttons"]["no"]},
-                    ]
-                ],
-                remove_keyboard=True,
+            lower_site = text.lower().strip()
+            btn_yes_site = cfg["buttons"]["yes"].lower()
+            btn_no_site = cfg["buttons"]["no"].lower()
+            skip_triage = (
+                _web_chat
+                and len(lower_site) > 8
+                and lower_site not in (btn_yes_site, btn_no_site)
             )
-            return {"ok": True}
+            if not skip_triage:
+                tg_send_and_panel(
+                    chat_id,
+                    user,
+                    cfg["triage_question"],
+                    buttons=[
+                        [
+                            {"text": cfg["buttons"]["yes"]},
+                            {"text": cfg["buttons"]["no"]},
+                        ]
+                    ],
+                    remove_keyboard=True,
+                )
+                return {"ok": True}
 
     # === обработка ответов на предложение созвона ===
     if s.get("call_state") == "offered":
@@ -2049,7 +2058,7 @@ def handle_incoming_message(
                 cfg=cfg,
                 short_history=short_history_text(s),
                 current_topic=s.get("topic"),
-                skip_gpt=_web_chat,
+                skip_gpt=False,
             )
             logging.info(
                 "TOPIC_CHECK user_id=%s text=%r detected=%s",
@@ -2059,20 +2068,31 @@ def handle_incoming_message(
             )
             s["topic"] = detected_topic
 
-        if detect_risk(text) or text.lower() == cfg["buttons"]["yes"].lower():
+        btn_yes = cfg["buttons"]["yes"].lower()
+        btn_no = cfg["buttons"]["no"].lower()
+        lower = text.lower().strip()
+        if detect_risk(text) or lower == btn_yes:
             emergency_text = cfg["safety_hint"] + build_emergency_phone_block(s.get("topic"))
             tg_send_and_panel(chat_id, user, emergency_text)
 
-        tg_send_and_panel(chat_id, user, cfg["what_happened_question"])
-        s["stage"] = 1
-        save_session(user["id"], s)
-        logging.info(
-            "SESSION_SAVED user_id=%s stage=%s topic=%s",
-            user.get("id"),
-            s.get("stage"),
-            s.get("topic"),
+        web_has_substance = (
+            _web_chat
+            and len(lower) > 8
+            and lower not in (btn_yes, btn_no)
         )
-        return {"ok": True}
+        if web_has_substance:
+            s["stage"] = 1
+        else:
+            tg_send_and_panel(chat_id, user, cfg["what_happened_question"])
+            s["stage"] = 1
+            save_session(user["id"], s)
+            logging.info(
+                "SESSION_SAVED user_id=%s stage=%s topic=%s",
+                user.get("id"),
+                s.get("stage"),
+                s.get("topic"),
+            )
+            return {"ok": True}
 
     # определяем тему, если ещё нет
     if s["topic"] is None:
