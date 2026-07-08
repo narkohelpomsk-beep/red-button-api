@@ -1,0 +1,16 @@
+name: Keep Render warm
+
+on:
+  schedule:
+    - cron: "*/8 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render API
+        run: |
+          curl -fsS --max-time 60 "https://red-button-api-j0r4.onrender.com/api/chat/ping"
+          curl -fsS --max-time 45 -X POST "https://redbuttonhelp.ru/api/chat/ping" \
+            -H "Content-Type: application/json" -d "{}"
