@@ -2458,12 +2458,30 @@ def export_worker():
 @app.route("/", methods=["GET"])
 def health():
     tg_ok = bool(ADMIN_ALERT_CHAT_ID and TELEGRAM_TOKEN)
+    webhook_url = ""
+    webhook_pending = None
+    webhook_error = None
+    if TELEGRAM_TOKEN:
+        try:
+            info = requests.get(
+                f"{_tg_api_base()}/getWebhookInfo", timeout=8
+            ).json()
+            res = info.get("result") or {}
+            webhook_url = res.get("url") or ""
+            webhook_pending = res.get("pending_update_count")
+            webhook_error = res.get("last_error_message")
+        except Exception as e:
+            webhook_error = str(e)
     return jsonify(
         {
             "ok": True,
             "email": email_notify.email_enabled(),
             "telegram": tg_ok,
             "max": max_notify.max_enabled(),
+            "webhook_url": webhook_url,
+            "webhook_pending": webhook_pending,
+            "webhook_error": webhook_error,
+            "webhook_expected": _default_webhook_url(),
         }
     )
 
@@ -2497,10 +2515,87 @@ else:
         "Email notifications OFF — задайте SMTP_* и ALERT_EMAIL_TO в Render Environment"
     )
 
+
+def _default_webhook_url() -> str:
+    url = (WEBHOOK_URL or "").strip()
+    if url:
+        return url.rstrip("/")
+    # Render public URL (override via WEBHOOK_URL if service name changes)
+    return "https://red-button-api-j0r4.onrender.com/webhook"
+
+
+def ensure_telegram_webhook() -> None:
+    """Привязать @impuls_red_bot к /webhook на Render (gunicorn не вызывает __main__)."""
+    if not TELEGRAM_TOKEN:
+        logging.warning("ensure_telegram_webhook: TELEGRAM_BOT_TOKEN пуст — пропуск")
+        return
+    wanted = _default_webhook_url()
+    try:
+        info = requests.get(
+            f"{_tg_api_base()}/getWebhookInfo", timeout=20
+        ).json()
+        current = ((info.get("result") or {}).get("url") or "").strip()
+        pending = (info.get("result") or {}).get("pending_update_count")
+        last_err = (info.get("result") or {}).get("last_error_message")
+        logging.info(
+            "Telegram webhook now=%s pending=%s last_error=%s",
+            current or "(none)",
+            pending,
+            last_err,
+        )
+        if current.rstrip("/") == wanted.rstrip("/"):
+            return
+        r = requests.post(
+            f"{_tg_api_base()}/setWebhook",
+            data={
+                "url": wanted,
+                "allowed_updates": json.dumps(["message", "edited_message"]),
+                "drop_pending_updates": "false",
+            },
+            timeout=20,
+        )
+        data = r.json() if r.content else {}
+        logging.info(
+            "Telegram setWebhook -> %s status=%s body=%s",
+            wanted,
+            r.status_code,
+            data,
+        )
+    except Exception:
+        logging.exception("ensure_telegram_webhook failed")
+
+
+def _boot_background() -> None:
+    """Инициализация при gunicorn (модуль импортируется как app:app)."""
+    try:
+        load_cfg()
+        build_indexes()
+    except Exception:
+        logging.exception("boot: config/kb failed")
+    try:
+        # Не валим процесс, если Postgres временно недоступен — веб/телеграм soft-fail.
+        init_db()
+    except Exception as e:
+        logging.warning("boot: init_db soft-fail: %s", e)
+        reset_pg_pool()
+    ensure_telegram_webhook()
+    try:
+        t = threading.Thread(
+            target=export_worker, name="export_worker", daemon=True
+        )
+        t.start()
+    except Exception:
+        logging.exception("boot: export_worker failed")
+
+
+# gunicorn: стартуем фон один раз при импорте модуля
+threading.Thread(target=_boot_background, name="rb_boot", daemon=True).start()
+
 if __name__ == "__main__":
     load_cfg()
     build_indexes()
     init_db_resilient()
+    ensure_telegram_webhook()
     # стартуем фонового экспортёра
     t = threading.Thread(
         target=export_worker, name="export_worker", daemon=True
