@@ -599,90 +599,167 @@ def init_db():
     logging.info("Postgres schema ensured")
 
 
+# In-memory session fallback: web-chat must work even if Postgres is down
+# (otherwise mobile falls into chat-lite templates).
+_SESSION_MEM: Dict[str, Dict[str, Any]] = {}
+_SESSION_MEM_LOCK = threading.Lock()
+_PG_DOWN_UNTIL = 0.0  # circuit breaker: skip DB until this unix time
+
+
+def _pg_is_down() -> bool:
+    return time.time() < _PG_DOWN_UNTIL
+
+
+def _pg_mark_down(seconds: float = 60.0) -> None:
+    global _PG_DOWN_UNTIL
+    _PG_DOWN_UNTIL = max(_PG_DOWN_UNTIL, time.time() + seconds)
+
+
+def _session_mem_get(uid) -> Optional[Dict[str, Any]]:
+    with _SESSION_MEM_LOCK:
+        s = _SESSION_MEM.get(str(uid))
+        return json.loads(json.dumps(s, ensure_ascii=False)) if s else None
+
+
+def _session_mem_put(uid, s: Dict[str, Any]) -> None:
+    with _SESSION_MEM_LOCK:
+        _SESSION_MEM[str(uid)] = json.loads(json.dumps(s, ensure_ascii=False))
+
+
 def upsert_user(u: Dict[str, Any]):
-    pg_exec(
-        """
-    INSERT INTO users(user_id, username, first_name, last_name, is_bot, is_subscribed, created_at, last_seen_at)
-    VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
-    ON CONFLICT (user_id) DO UPDATE SET
-      username=EXCLUDED.username,
-      first_name=EXCLUDED.first_name,
-      last_name=EXCLUDED.last_name,
-      is_bot=EXCLUDED.is_bot,
-      last_seen_at=EXCLUDED.last_seen_at
-    """,
-        (
-            str(u["id"]),
-            u.get("username"),
-            u.get("first_name"),
-            u.get("last_name"),
-            1 if u.get("is_bot") else 0,
-            1,
-            int(time.time()),
-            int(time.time()),
-        ),
-    )
+    if _pg_is_down():
+        return
+    try:
+        pg_exec(
+            """
+        INSERT INTO users(user_id, username, first_name, last_name, is_bot, is_subscribed, created_at, last_seen_at)
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+        ON CONFLICT (user_id) DO UPDATE SET
+          username=EXCLUDED.username,
+          first_name=EXCLUDED.first_name,
+          last_name=EXCLUDED.last_name,
+          is_bot=EXCLUDED.is_bot,
+          last_seen_at=EXCLUDED.last_seen_at
+        """,
+            (
+                str(u["id"]),
+                u.get("username"),
+                u.get("first_name"),
+                u.get("last_name"),
+                1 if u.get("is_bot") else 0,
+                1,
+                int(time.time()),
+                int(time.time()),
+            ),
+            _retries=1,
+        )
+    except Exception as e:
+        _pg_mark_down()
+        logging.warning("upsert_user soft-fail: %s", e)
 
 
 def set_subscribed(user_id: str, val: int):
-    pg_exec(
-        "UPDATE users SET is_subscribed=%s, last_seen_at=%s WHERE user_id=%s",
-        (val, int(time.time()), str(user_id)),
-    )
+    if _pg_is_down():
+        return
+    try:
+        pg_exec(
+            "UPDATE users SET is_subscribed=%s, last_seen_at=%s WHERE user_id=%s",
+            (val, int(time.time()), str(user_id)),
+            _retries=1,
+        )
+    except Exception as e:
+        _pg_mark_down()
+        logging.warning("set_subscribed soft-fail: %s", e)
 
 
 def load_session(uid) -> Optional[Dict[str, Any]]:
-    rows = pg_exec(
-        "SELECT mode, stage, max_turns, topic, last_ts, history, call_state FROM sessions WHERE user_id=%s",
-        (str(uid),),
-        fetch=True,
-    )
-    if not rows:
-        return None
-    mode, stage, max_turns, topic, last_ts, hist, call_state = rows[0]
-    return {
-        "mode": mode,
-        "stage": stage,
-        "max_turns": max_turns,
-        "topic": topic,
-        "last_ts": last_ts,
-        "history": json.loads(hist or "[]"),
-        "call_state": call_state,
-    }
+    key = str(uid)
+    if _pg_is_down():
+        return _session_mem_get(key)
+    try:
+        rows = pg_exec(
+            "SELECT mode, stage, max_turns, topic, last_ts, history, call_state FROM sessions WHERE user_id=%s",
+            (key,),
+            fetch=True,
+            _retries=1,
+        )
+        if not rows:
+            return _session_mem_get(key)
+        mode, stage, max_turns, topic, last_ts, hist, call_state = rows[0]
+        s = {
+            "mode": mode,
+            "stage": stage,
+            "max_turns": max_turns,
+            "topic": topic,
+            "last_ts": last_ts,
+            "history": json.loads(hist or "[]"),
+            "call_state": call_state,
+        }
+        _session_mem_put(key, s)
+        return s
+    except Exception as e:
+        _pg_mark_down()
+        logging.warning("load_session DB fail, memory fallback: %s", e)
+        return _session_mem_get(key)
 
 
 def save_session(uid, s: Dict[str, Any]):
-    pg_exec(
-        """
-    INSERT INTO sessions(user_id, mode, stage, max_turns, topic, last_ts, history, call_state)
-    VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
-    ON CONFLICT (user_id) DO UPDATE SET
-      mode=EXCLUDED.mode,
-      stage=EXCLUDED.stage,
-      max_turns=EXCLUDED.max_turns,
-      topic=EXCLUDED.topic,
-      last_ts=EXCLUDED.last_ts,
-      history=EXCLUDED.history,
-      call_state=EXCLUDED.call_state
-    """,
-        (
-            str(uid),
-            s.get("mode"),
-            s.get("stage"),
-            s.get("max_turns"),
-            s.get("topic"),
-            int(time.time()),
-            json.dumps(s.get("history", []), ensure_ascii=False),
-            s.get("call_state"),
-        ),
-    )
+    key = str(uid)
+    payload = {
+        "mode": s.get("mode"),
+        "stage": s.get("stage"),
+        "max_turns": s.get("max_turns"),
+        "topic": s.get("topic"),
+        "last_ts": int(time.time()),
+        "history": list(s.get("history", []) or []),
+        "call_state": s.get("call_state"),
+    }
+    _session_mem_put(key, payload)
+    if _pg_is_down():
+        return
+    try:
+        pg_exec(
+            """
+        INSERT INTO sessions(user_id, mode, stage, max_turns, topic, last_ts, history, call_state)
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+        ON CONFLICT (user_id) DO UPDATE SET
+          mode=EXCLUDED.mode,
+          stage=EXCLUDED.stage,
+          max_turns=EXCLUDED.max_turns,
+          topic=EXCLUDED.topic,
+          last_ts=EXCLUDED.last_ts,
+          history=EXCLUDED.history,
+          call_state=EXCLUDED.call_state
+        """,
+            (
+                key,
+                payload["mode"],
+                payload["stage"],
+                payload["max_turns"],
+                payload["topic"],
+                payload["last_ts"],
+                json.dumps(payload["history"], ensure_ascii=False),
+                payload["call_state"],
+            ),
+            _retries=1,
+        )
+    except Exception as e:
+        _pg_mark_down()
+        logging.warning("save_session DB fail (memory kept): %s", e)
 
 
 def save_message(uid, role, text):
-    pg_exec(
-        "INSERT INTO messages(user_id, role, text, ts) VALUES (%s,%s,%s,%s)",
-        (str(uid), role, text, int(time.time())),
-    )
+    if _pg_is_down():
+        return
+    try:
+        pg_exec(
+            "INSERT INTO messages(user_id, role, text, ts) VALUES (%s,%s,%s,%s)",
+            (str(uid), role, text, int(time.time())),
+            _retries=1,
+        )
+    except Exception as e:
+        _pg_mark_down()
+        logging.warning("save_message soft-fail: %s", e)
 
 
 def get_subscribed_users() -> List[str]:
@@ -718,16 +795,30 @@ def set_admin_state(user_id: str, pending: Optional[str]):
 
 
 def get_admin_state(user_id: str) -> Optional[str]:
-    rows = pg_exec(
-        "SELECT pending FROM admin_states WHERE user_id=%s",
-        (str(user_id),),
-        fetch=True,
-    )
-    return rows[0][0] if rows else None
+    if _pg_is_down():
+        return None
+    try:
+        rows = pg_exec(
+            "SELECT pending FROM admin_states WHERE user_id=%s",
+            (str(user_id),),
+            fetch=True,
+            _retries=1,
+        )
+        return rows[0][0] if rows else None
+    except Exception as e:
+        _pg_mark_down()
+        logging.warning("get_admin_state soft-fail: %s", e)
+        return None
 
 
 def clear_admin_state(user_id: str):
-    pg_exec("DELETE FROM admin_states WHERE user_id=%s", (str(user_id),))
+    if _pg_is_down():
+        return
+    try:
+        pg_exec("DELETE FROM admin_states WHERE user_id=%s", (str(user_id),), _retries=1)
+    except Exception as e:
+        _pg_mark_down()
+        logging.warning("clear_admin_state soft-fail: %s", e)
 
 
 # ======== вспомогательная статистика ========
@@ -1184,7 +1275,7 @@ def _accept_phone_lead(
             cfg=cfg,
             short_history=short_history_text(s),
             current_topic=s.get("topic"),
-            skip_gpt=_web_chat,
+            skip_gpt=False,
         )
         if detected_topic:
             s["topic"] = detected_topic
@@ -1950,19 +2041,28 @@ def handle_incoming_message(
         if site_triage_answer:
             pass  # ниже — обработка ответа «Да»/«Нет» на триаже
         else:
-            tg_send_and_panel(
-                chat_id,
-                user,
-                cfg["triage_question"],
-                buttons=[
-                    [
-                        {"text": cfg["buttons"]["yes"]},
-                        {"text": cfg["buttons"]["no"]},
-                    ]
-                ],
-                remove_keyboard=True,
+            lower_site = text.lower().strip()
+            btn_yes_site = cfg["buttons"]["yes"].lower()
+            btn_no_site = cfg["buttons"]["no"].lower()
+            skip_triage = (
+                _web_chat
+                and len(lower_site) > 8
+                and lower_site not in (btn_yes_site, btn_no_site)
             )
-            return {"ok": True}
+            if not skip_triage:
+                tg_send_and_panel(
+                    chat_id,
+                    user,
+                    cfg["triage_question"],
+                    buttons=[
+                        [
+                            {"text": cfg["buttons"]["yes"]},
+                            {"text": cfg["buttons"]["no"]},
+                        ]
+                    ],
+                    remove_keyboard=True,
+                )
+                return {"ok": True}
 
     # === обработка ответов на предложение созвона ===
     if s.get("call_state") == "offered":
@@ -2049,7 +2149,7 @@ def handle_incoming_message(
                 cfg=cfg,
                 short_history=short_history_text(s),
                 current_topic=s.get("topic"),
-                skip_gpt=_web_chat,
+                skip_gpt=False,
             )
             logging.info(
                 "TOPIC_CHECK user_id=%s text=%r detected=%s",
@@ -2059,20 +2159,31 @@ def handle_incoming_message(
             )
             s["topic"] = detected_topic
 
-        if detect_risk(text) or text.lower() == cfg["buttons"]["yes"].lower():
+        btn_yes = cfg["buttons"]["yes"].lower()
+        btn_no = cfg["buttons"]["no"].lower()
+        lower = text.lower().strip()
+        if detect_risk(text) or lower == btn_yes:
             emergency_text = cfg["safety_hint"] + build_emergency_phone_block(s.get("topic"))
             tg_send_and_panel(chat_id, user, emergency_text)
 
-        tg_send_and_panel(chat_id, user, cfg["what_happened_question"])
-        s["stage"] = 1
-        save_session(user["id"], s)
-        logging.info(
-            "SESSION_SAVED user_id=%s stage=%s topic=%s",
-            user.get("id"),
-            s.get("stage"),
-            s.get("topic"),
+        web_has_substance = (
+            _web_chat
+            and len(lower) > 8
+            and lower not in (btn_yes, btn_no)
         )
-        return {"ok": True}
+        if web_has_substance:
+            s["stage"] = 1
+        else:
+            tg_send_and_panel(chat_id, user, cfg["what_happened_question"])
+            s["stage"] = 1
+            save_session(user["id"], s)
+            logging.info(
+                "SESSION_SAVED user_id=%s stage=%s topic=%s",
+                user.get("id"),
+                s.get("stage"),
+                s.get("topic"),
+            )
+            return {"ok": True}
 
     # определяем тему, если ещё нет
     if s["topic"] is None:
