@@ -1245,6 +1245,121 @@ def tg_send_document(
         logging.exception("sendDocument exception")
         return False
 
+
+def tg_download_file_bytes(file_id: str) -> Optional[bytes]:
+    if not TELEGRAM_TOKEN or not file_id:
+        return None
+    try:
+        r = requests.get(
+            f"{_tg_api_base()}/getFile",
+            params={"file_id": file_id},
+            timeout=20,
+        )
+        r.raise_for_status()
+        file_path = (r.json().get("result") or {}).get("file_path")
+        if not file_path:
+            return None
+        fr = requests.get(
+            f"https://api.telegram.org/file/bot{TELEGRAM_TOKEN}/{file_path}",
+            timeout=60,
+        )
+        fr.raise_for_status()
+        return fr.content
+    except Exception:
+        logging.exception("tg_download_file_bytes failed file_id=%s", file_id)
+        return None
+
+
+def transcribe_audio_bytes(
+    audio_bytes: bytes, filename: str = "voice.ogg"
+) -> Optional[str]:
+    if not OPENAI_KEY or not audio_bytes:
+        return None
+    try:
+        r = requests.post(
+            "https://api.openai.com/v1/audio/transcriptions",
+            headers={"Authorization": f"Bearer {OPENAI_KEY}"},
+            files={"file": (filename, audio_bytes)},
+            data={"model": "whisper-1", "language": "ru"},
+            timeout=60,
+        )
+        r.raise_for_status()
+        text = (r.json().get("text") or "").strip()
+        return text or None
+    except Exception:
+        logging.exception("transcribe_audio_bytes failed filename=%s", filename)
+        return None
+
+
+def _voice_file_from_msg(msg: Dict[str, Any]) -> Optional[tuple]:
+    voice = msg.get("voice")
+    if voice and voice.get("file_id"):
+        return voice["file_id"], "voice.ogg"
+    audio = msg.get("audio")
+    if audio and audio.get("file_id"):
+        mime = (audio.get("mime_type") or "").lower()
+        ext = "mp3"
+        if "ogg" in mime:
+            ext = "ogg"
+        elif "wav" in mime:
+            ext = "wav"
+        elif "m4a" in mime or "mp4" in mime:
+            ext = "m4a"
+        filename = audio.get("file_name") or f"audio.{ext}"
+        return audio["file_id"], filename
+    return None
+
+
+def extract_incoming_text(msg: Dict[str, Any]) -> tuple:
+    """Текст из сообщения Telegram: text, caption или распознанное голосовое."""
+    meta: Dict[str, Any] = {}
+    text = (msg.get("text") or "").strip()
+    if text:
+        meta["source"] = "text"
+        return text, meta
+
+    caption = (msg.get("caption") or "").strip()
+    if caption:
+        meta["source"] = "caption"
+        return caption, meta
+
+    voice_info = _voice_file_from_msg(msg)
+    if voice_info:
+        file_id, filename = voice_info
+        audio_bytes = tg_download_file_bytes(file_id)
+        if not audio_bytes:
+            meta["source"] = "voice"
+            meta["voice_failed"] = True
+            return "", meta
+        transcribed = transcribe_audio_bytes(audio_bytes, filename)
+        if transcribed:
+            meta["source"] = "voice"
+            logging.info(
+                "VOICE_TRANSCRIBED file_id=%s text_len=%s",
+                file_id,
+                len(transcribed),
+            )
+            return transcribed, meta
+        meta["source"] = "voice"
+        meta["voice_failed"] = True
+        return "", meta
+
+    if any(
+        k in msg
+        for k in (
+            "photo",
+            "video",
+            "document",
+            "sticker",
+            "animation",
+            "video_note",
+        )
+    ):
+        meta["unsupported_media"] = True
+
+    return "", meta
+
+
 def _detect_platform(chat_id: Any, user: Dict[str, Any]) -> str:
     cid = str(chat_id or "")
     if cid.startswith("web:"):
@@ -2264,11 +2379,41 @@ def webhook():
     msg = upd.get("message") or upd.get("edited_message")
     if not msg:
         return {"ok": True}
+
+    text, meta = extract_incoming_text(msg)
+    chat_id = msg["chat"]["id"]
+
+    if meta.get("voice_failed"):
+        cfg = load_cfg()
+        tg_send(
+            chat_id,
+            cfg.get(
+                "voice_transcribe_failed",
+                "Не удалось распознать голосовое сообщение. Напишите текстом, пожалуйста.",
+            ),
+        )
+        return {"ok": True}
+
+    if (
+        meta.get("unsupported_media")
+        and not text
+        and not msg.get("contact")
+    ):
+        cfg = load_cfg()
+        tg_send(
+            chat_id,
+            cfg.get(
+                "unsupported_message",
+                "Я понимаю текст и голосовые сообщения. Напишите или запишите голосовое, пожалуйста.",
+            ),
+        )
+        return {"ok": True}
+
     return handle_incoming_message(
-        msg["chat"]["id"],
+        chat_id,
         msg["chat"].get("type", ""),
         msg["from"],
-        (msg.get("text") or "").strip(),
+        text,
         message_id=msg.get("message_id"),
         update_id=upd.get("update_id"),
         msg=msg,
