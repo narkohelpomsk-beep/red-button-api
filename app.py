@@ -2260,19 +2260,25 @@ def handle_incoming_message(
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    upd = request.json or {}
-    msg = upd.get("message") or upd.get("edited_message")
-    if not msg:
-        return {"ok": True}
-    return handle_incoming_message(
-        msg["chat"]["id"],
-        msg["chat"].get("type", ""),
-        msg["from"],
-        (msg.get("text") or "").strip(),
-        message_id=msg.get("message_id"),
-        update_id=upd.get("update_id"),
-        msg=msg,
-    )
+    # Telegram отключает доставку при 500 — всегда отвечаем 200, ошибки только в лог.
+    try:
+        upd = request.json or {}
+        msg = upd.get("message") or upd.get("edited_message")
+        if not msg:
+            return jsonify({"ok": True})
+        handle_incoming_message(
+            msg["chat"]["id"],
+            msg["chat"].get("type", ""),
+            msg["from"],
+            (msg.get("text") or "").strip(),
+            message_id=msg.get("message_id"),
+            update_id=upd.get("update_id"),
+            msg=msg,
+        )
+        return jsonify({"ok": True})
+    except Exception:
+        logging.exception("webhook handler failed")
+        return jsonify({"ok": True})
 
 
 # ===================== Export finished dialogs (15 min idle) =====================
