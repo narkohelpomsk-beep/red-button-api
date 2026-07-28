@@ -769,15 +769,47 @@ def get_subscribed_users() -> List[str]:
     return [r[0] for r in rows] if rows else []
 
 
+# Локальный дедуп, если PostgreSQL недоступен (иначе Telegram молчит).
+_processed_mem: set = set()
+_processed_mem_lock = threading.Lock()
+
+
 def mark_update_processed(update_id: int) -> bool:
+    """True — обработать апдейт; False — только подтверждённый дубликат.
+
+    Раньше любая ошибка БД давала False → Telegram-сообщения молча
+    отбрасывались, а веб-чат работал (там дедуп не вызывается).
+    """
+    uid = int(update_id)
+
+    def _mem_allow() -> bool:
+        with _processed_mem_lock:
+            if uid in _processed_mem:
+                return False
+            _processed_mem.add(uid)
+            if len(_processed_mem) > 5000:
+                for old in list(_processed_mem)[:2500]:
+                    _processed_mem.discard(old)
+            return True
+
+    if _pg_is_down():
+        return _mem_allow()
+
     try:
         pg_exec(
             "INSERT INTO processed_updates(update_id, ts) VALUES (%s,%s)",
-            (int(update_id), int(time.time())),
+            (uid, int(time.time())),
+            _retries=1,
         )
+        with _processed_mem_lock:
+            _processed_mem.add(uid)
         return True
-    except Exception:
+    except psycopg2.IntegrityError:
         return False
+    except Exception as e:
+        logging.warning("mark_update_processed soft-fail, allow message: %s", e)
+        _pg_mark_down()
+        return _mem_allow()
 
 
 # --- admin pending state helpers ---
@@ -2526,12 +2558,16 @@ def _default_webhook_url() -> str:
     url = (WEBHOOK_URL or "").strip()
     if url:
         return url.rstrip("/")
-    # Render public URL (override via WEBHOOK_URL if service name changes)
+    # Публичный базовый URL VPS/домена (без /webhook)
+    base = (os.getenv("PUBLIC_BASE_URL") or "").strip().rstrip("/")
+    if base:
+        return f"{base}/webhook"
+    # Fallback: старый Render (пока не переключили WEBHOOK_URL / PUBLIC_BASE_URL)
     return "https://red-button-api-j0r4.onrender.com/webhook"
 
 
 def ensure_telegram_webhook() -> None:
-    """Привязать @impuls_red_bot к /webhook на Render (gunicorn не вызывает __main__)."""
+    """Привязать @impuls_red_bot к /webhook (gunicorn не вызывает __main__)."""
     if not TELEGRAM_TOKEN:
         logging.warning("ensure_telegram_webhook: TELEGRAM_BOT_TOKEN пуст — пропуск")
         return
