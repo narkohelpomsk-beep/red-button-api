@@ -922,7 +922,8 @@ class _WebCapture:
                 self.items[-1]["buttons"] = []
             return
         rows = []
-        if buttons and not remove_keyboard:
+        # На сайте remove_keyboard (Telegram) не должен прятать кнопки — иначе триаж без «Да/Нет».
+        if buttons:
             for row in buttons:
                 labels = []
                 for cell in row:
@@ -933,7 +934,7 @@ class _WebCapture:
                 if labels:
                     rows.append(labels)
         awaiting_phone = False
-        if buttons and not remove_keyboard:
+        if buttons:
             for row in buttons:
                 for cell in row:
                     if isinstance(cell, dict) and cell.get("request_contact"):
@@ -1029,6 +1030,18 @@ def _web_run(meta: Dict[str, Any], text: str, *, phone: Optional[str] = None) ->
         _WEB_CAPTURE = None
     out = capture.flush()
     out["session_id"] = meta["session_id"]
+    # Страховка: сайт никогда не должен получить пустой успешный ответ.
+    if not (out.get("reply") or "").strip():
+        logging.warning(
+            "web_chat empty capture session=%s — injecting fallback",
+            meta.get("session_id"),
+        )
+        out["reply"] = (
+            "Я на связи. Расскажите коротко, что случилось "
+            "и что сейчас сложнее всего?"
+        )
+        if not out.get("buttons"):
+            out["buttons"] = []
     return out
 
 
@@ -1140,8 +1153,16 @@ def panel_headers():
         headers["X-Panel-Secret"] = PANEL_API_SECRET
     return headers
 
+def _is_telegram_client_chat(chat_id: Any, user: Optional[Dict[str, Any]] = None) -> bool:
+    """Живые клиентские чаты только Telegram. Сайт/VK — только алерты админу."""
+    return _detect_platform(chat_id, user or {}) == "telegram"
+
+
 def send_to_panel(chat_id, user, text, direction, sender_type=None, telegram_message_id=None):
     if not PANEL_API_URL:
+        return
+    # Сайт и VK не должны попадать в панель/клиентский бот — только алерты админу.
+    if not _is_telegram_client_chat(chat_id, user):
         return
 
     def _post():
@@ -1226,7 +1247,7 @@ def tg_send(chat_id, text, buttons=None, remove_keyboard=False):
         elif remove_keyboard:
             payload["reply_markup"] = json.dumps({"remove_keyboard": True})
 
-        r = requests.post(f"{_tg_api_base()}/sendMessage", data=payload, timeout=20)
+        r = requests.post(f"{_tg_api_base()}/sendMessage", data=payload, timeout=8)
         if not r.ok:
             logging.warning("sendMessage failed: %s %s", r.status_code, r.text)
             return None
@@ -1558,8 +1579,9 @@ def gpt_reply(
         ],
         "max_tokens": 120 if fast else 220,
     }
-    attempts = 1 if fast else 2
-    req_timeout = 14 if fast else 28
+    attempts = 2 if fast else 2
+    req_timeout = 18 if fast else 28
+    last_err: Optional[Exception] = None
     for attempt in range(attempts):
         try:
             r = requests.post(
@@ -1572,16 +1594,19 @@ def gpt_reply(
                 timeout=req_timeout,
             )
             r.raise_for_status()
-            return (
+            content = (
                 r.json()["choices"][0]["message"]["content"]
                 .strip()
             )
-        except Exception:
-            if attempt == 0:
-                time.sleep(0.3)
-            else:
-                raise
-
+            if not content:
+                raise RuntimeError("empty GPT content")
+            return content
+        except Exception as e:
+            last_err = e
+            if attempt + 1 < attempts:
+                time.sleep(0.4)
+    # Раньше при fast=True ошибка первой попытки проглатывалась → пустой ответ на сайте
+    raise last_err or RuntimeError("GPT failed")
 def detect_topic_gpt(
     cfg: Dict[str, Any],
     text: str,
@@ -2076,8 +2101,14 @@ def handle_incoming_message(
             lower_site = text.lower().strip()
             btn_yes_site = cfg["buttons"]["yes"].lower()
             btn_no_site = cfg["buttons"]["no"].lower()
+            mode_self_btn = cfg["buttons"]["mode_self"]
+            mode_rel_btn = cfg["buttons"]["mode_relative"]
+            # Кнопки «Проблема у меня/близкого» никогда не пропускаем — иначе сайт
+            # уходит в GPT без ответа (на части серверов GPT недоступен → пустой reply).
+            is_mode_button = text in (mode_self_btn, mode_rel_btn)
             skip_triage = (
                 _web_chat
+                and not is_mode_button
                 and len(lower_site) > 8
                 and lower_site not in (btn_yes_site, btn_no_site)
             )
@@ -2202,6 +2233,11 @@ def handle_incoming_message(
             _web_chat
             and len(lower) > 8
             and lower not in (btn_yes, btn_no)
+            and text
+            not in (
+                cfg["buttons"]["mode_self"],
+                cfg["buttons"]["mode_relative"],
+            )
         )
         if web_has_substance:
             s["stage"] = 1
@@ -2224,13 +2260,15 @@ def handle_incoming_message(
             cfg=cfg,
             short_history=short_history_text(s),
             current_topic=s.get("topic"),
-            skip_gpt=_web_chat,
+            skip_gpt=False,
         )
 
     kb_chunks = collect_kb_chunks(s["topic"], s["mode"])
     risk = detect_risk(text)
     recent_replies = recent_assistant_replies(s, limit=3)
 
+    # На сайте GPT как в Telegram (не урезанный fast) — иначе при сбое сети/403
+    # получали пустой ответ и «зацикливание» вопроса.
     try:
         reply = gpt_reply(
             cfg=cfg,
@@ -2241,13 +2279,19 @@ def handle_incoming_message(
             risk_detected=risk,
             recent_replies=recent_replies,
             call_state=s.get("call_state"),
-            fast=_web_chat,
+            fast=False,
         )
     except Exception:
         logging.exception("GPT error")
         reply = (
             "Я с вами. Давайте шаг за шагом. "
             "Что прямо сейчас сложнее всего?"
+        )
+
+    if not (reply or "").strip():
+        reply = (
+            "Я на связи. Расскажите коротко, что случилось "
+            "и что сейчас сложнее всего?"
         )
 
     reply = diversify_reply(reply, recent_replies)
@@ -2499,10 +2543,13 @@ def health():
     webhook_url = ""
     webhook_pending = None
     webhook_error = None
-    if TELEGRAM_TOKEN:
+    # Не дергаем Telegram на каждый health: с части VPS api.telegram.org недоступен
+    # и долгий timeout подвешивает gunicorn workers.
+    probe = (os.getenv("TELEGRAM_HEALTH_PROBE") or "").strip() in ("1", "true", "yes")
+    if TELEGRAM_TOKEN and probe:
         try:
             info = requests.get(
-                f"{_tg_api_base()}/getWebhookInfo", timeout=8
+                f"{_tg_api_base()}/getWebhookInfo", timeout=2
             ).json()
             res = info.get("result") or {}
             webhook_url = res.get("url") or ""
@@ -2571,10 +2618,18 @@ def ensure_telegram_webhook() -> None:
     if not TELEGRAM_TOKEN:
         logging.warning("ensure_telegram_webhook: TELEGRAM_BOT_TOKEN пуст — пропуск")
         return
+    # На части TimeWeb VPS исходящий доступ к api.telegram.org закрыт.
+    # Не перехватываем webhook с Render, пока явно не включили управление.
+    manage = (os.getenv("TELEGRAM_MANAGE_WEBHOOK") or "").strip().lower()
+    if manage not in ("1", "true", "yes"):
+        logging.info(
+            "ensure_telegram_webhook: пропуск (TELEGRAM_MANAGE_WEBHOOK не включён)"
+        )
+        return
     wanted = _default_webhook_url()
     try:
         info = requests.get(
-            f"{_tg_api_base()}/getWebhookInfo", timeout=20
+            f"{_tg_api_base()}/getWebhookInfo", timeout=5
         ).json()
         current = ((info.get("result") or {}).get("url") or "").strip()
         pending = (info.get("result") or {}).get("pending_update_count")
@@ -2594,7 +2649,7 @@ def ensure_telegram_webhook() -> None:
                 "allowed_updates": json.dumps(["message", "edited_message"]),
                 "drop_pending_updates": "false",
             },
-            timeout=20,
+            timeout=5,
         )
         data = r.json() if r.content else {}
         logging.info(
