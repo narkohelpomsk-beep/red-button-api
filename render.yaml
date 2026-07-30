@@ -3,7 +3,7 @@ services:
     name: red-button-api
     runtime: python-3.12
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 8 --timeout 120
     envVars:
       - key: WEB_CHAT_CORS
         value: https://redbuttonhelp.ru
