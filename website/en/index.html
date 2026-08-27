@@ -1,0 +1,1351 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light" />
+  <meta name="theme-color" content="#b91c1c" />
+  <meta name="robots" content="index,follow" />
+  <meta name="description" content="Anonymous help in Omsk 24/7: addiction, bullying, crisis. Red Button — call, message on Telegram or VK, or chat on the site. No judgment." />
+  <meta name="keywords" content="anonymous help Omsk, hotline Omsk, addiction help, bullying where to turn, crisis support, red button, Impuls Omsk" />
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="en_US" />
+  <meta property="og:site_name" content="Red Button" />
+  <meta property="og:title" content="Anonymous help in Omsk 24/7 — Red Button" />
+  <meta property="og:description" content="Call, message on VK or Telegram, or chat on the site. Addiction, bullying, crisis — anonymously, without judgment." />
+  <meta property="og:url" content="https://redbuttonhelp.ru/en/" />
+  <meta property="og:image" content="https://redbuttonhelp.ru/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Anonymous help in Omsk 24/7 — Red Button" />
+  <meta name="twitter:description" content="Support for addiction, bullying, and crisis. Omsk. Call or message online." />
+  <meta name="twitter:image" content="https://redbuttonhelp.ru/og-image.png" />
+  <link rel="alternate" hreflang="ru" href="https://redbuttonhelp.ru/" />
+  <link rel="alternate" hreflang="en" href="https://redbuttonhelp.ru/en/" />
+  <link rel="alternate" hreflang="x-default" href="https://redbuttonhelp.ru/" />
+  <link rel="canonical" href="https://redbuttonhelp.ru/en/" />
+  <link rel="icon" href="https://redbuttonhelp.ru/favicon.ico" sizes="any" />
+  <link rel="icon" href="https://redbuttonhelp.ru/favicon-32.png" type="image/png" sizes="32x32" />
+  <link rel="icon" href="https://redbuttonhelp.ru/favicon-120.png" type="image/png" sizes="120x120" />
+  <link rel="icon" href="https://redbuttonhelp.ru/favicon-192x192.png" type="image/png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="https://redbuttonhelp.ru/apple-touch-icon.png" sizes="180x180" />
+  <title>Anonymous help in Omsk 24/7 — Red Button | call, Telegram, chat</title>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": ["NGO", "CrisisService"],
+    "name": "Red Button — Impuls center",
+    "alternateName": "Red Button Omsk",
+    "url": "https://redbuttonhelp.ru/",
+    "description": "Anonymous hotline and help chatbot in Omsk: addiction, bullying, crisis. Available 24/7.",
+    "areaServed": { "@type": "City", "name": "Omsk" },
+    "telephone": "+7-909-535-40-90",
+    "email": "rc-impuls@yandex.ru",
+    "image": "https://redbuttonhelp.ru/og-image.png",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "37 Dekabristov St",
+      "addressLocality": "Omsk",
+      "addressCountry": "RU"
+    },
+    "sameAs": [
+      "https://t.me/impuls_red_bot",
+      "https://vk.me/RedButtonHelp",
+      "https://narkohelpomsk.ru/",
+      "https://impulsplus55.ru/"
+    ],
+    "availableChannel": {
+      "@type": "ServiceChannel",
+      "serviceUrl": "https://redbuttonhelp.ru/#chat",
+      "servicePhone": "+7-909-535-40-90",
+      "availableLanguage": ["English", "Russian"]
+    }
+  }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --red: #dc2626;
+      --red-dark: #991b1b;
+      --red-soft: #fef2f2;
+      --ink: #0f172a;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --card: #ffffff;
+      --bot-bubble: #f1f5f9;
+      --user-bubble: #fee2e2;
+      --radius: 16px;
+      --max: 720px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: "Manrope", system-ui, sans-serif;
+      font-size: 1rem;
+      line-height: 1.55;
+      color: var(--ink);
+      background: linear-gradient(180deg, #fff5f5 0%, #f8fafc 28%, #f1f5f9 100%);
+      min-height: 100dvh;
+    }
+
+    a { color: var(--red); }
+    a:hover { text-decoration: underline; }
+
+    .wrap { width: min(100% - 1.5rem, var(--max)); margin-inline: auto; }
+
+    header {
+      padding: 1rem 0 0.5rem;
+      text-align: center;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.35rem 0.75rem;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--muted);
+    }
+    .badge span { color: var(--red); }
+
+    .hero {
+      text-align: center;
+      padding: 0.5rem 0 2rem;
+    }
+    .hero-visual {
+      margin: 0 auto 1.5rem;
+      width: min(22rem, 72vw);
+      max-width: 100%;
+      padding: 1.5rem;
+      overflow: visible;
+    }
+    .hero-cta {
+      display: block;
+      width: 100%;
+      text-decoration: none;
+      outline: none;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      overflow: visible;
+    }
+    .hero-cta:focus-visible .hero-btn-dome {
+      box-shadow:
+        0 0 0 4px #fff,
+        0 0 0 7px var(--red),
+        0 18px 36px rgba(185, 28, 28, 0.55),
+        inset 0 -10px 22px rgba(80, 10, 10, 0.45),
+        inset 0 8px 18px rgba(255, 255, 255, 0.35);
+    }
+    .hero-btn-stage {
+      display: block;
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1;
+      min-height: 16rem;
+      overflow: visible;
+    }
+    @supports not (aspect-ratio: 1) {
+      .hero-btn-stage {
+        height: 0;
+        min-height: 0;
+        padding-bottom: 100%;
+      }
+    }
+    /* Пульсирующие кольца (вокруг кнопки, хорошо видны на светлом фоне) */
+    .hero-btn-pulse,
+    .hero-btn-shadow,
+    .hero-btn-dome {
+      display: block;
+    }
+    .hero-btn-pulse {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 88%;
+      height: 88%;
+      margin: 0;
+      border-radius: 50%;
+      border: 4px solid rgba(220, 38, 38, 0.9);
+      background: rgba(239, 68, 68, 0.12);
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.5) inset,
+        0 0 32px rgba(239, 68, 68, 0.55);
+      transform: translate(-50%, -50%) scale(0.85);
+      transform-origin: center center;
+      will-change: transform, opacity;
+      animation: hero-pulse-ring 1.75s ease-out infinite;
+      -webkit-animation: hero-pulse-ring 1.75s ease-out infinite;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .hero-btn-pulse--2 {
+      animation-delay: 1s;
+      border-color: rgba(248, 113, 113, 0.55);
+    }
+    @-webkit-keyframes hero-pulse-ring {
+      0% {
+        -webkit-transform: translate(-50%, -50%) scale(0.85);
+        opacity: 1;
+      }
+      100% {
+        -webkit-transform: translate(-50%, -50%) scale(1.55);
+        opacity: 0;
+      }
+    }
+    @keyframes hero-pulse-ring {
+      0% {
+        transform: translate(-50%, -50%) scale(0.85);
+        opacity: 1;
+      }
+      100% {
+        transform: translate(-50%, -50%) scale(1.55);
+        opacity: 0;
+      }
+    }
+    /* Тень под кнопкой */
+    .hero-btn-shadow {
+      position: absolute;
+      left: 50%;
+      bottom: 6%;
+      width: 70%;
+      height: 12%;
+      margin-left: -35%;
+      border-radius: 50%;
+      background: radial-gradient(ellipse at center, rgba(120, 20, 20, 0.6) 0%, transparent 70%);
+      filter: blur(8px);
+      pointer-events: none;
+      z-index: 0;
+      animation: hero-shadow-pulse 2s ease-in-out infinite;
+    }
+    @keyframes hero-shadow-pulse {
+      0%, 100% { opacity: 0.7; transform: scaleX(1) scaleY(0.85); }
+      50% { opacity: 1; transform: scaleX(1.12) scaleY(1); }
+    }
+    /* Купол кнопки */
+    .hero-btn-dome {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      z-index: 2;
+      width: 72%;
+      height: 72%;
+      min-width: 8rem;
+      min-height: 8rem;
+      margin: 0;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      transform-origin: center center;
+      background:
+        radial-gradient(140% 95% at 50% 8%, #fff8f8 0%, transparent 42%),
+        radial-gradient(ellipse 85% 55% at 50% 18%, #ff8a8a 0%, #ef4444 38%, #dc2626 58%, #b91c1c 78%, #991b1b 100%);
+      box-shadow:
+        0 16px 32px rgba(185, 28, 28, 0.5),
+        0 4px 8px rgba(0, 0, 0, 0.12),
+        0 0 0 0 rgba(239, 68, 68, 0.5),
+        inset 0 -12px 24px rgba(69, 10, 10, 0.5),
+        inset 0 10px 20px rgba(255, 255, 255, 0.28),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.15);
+      animation: hero-dome-breathe 2s ease-in-out infinite;
+      transition: transform 0.25s cubic-bezier(0.34, 1.2, 0.64, 1), box-shadow 0.25s ease;
+    }
+    @keyframes hero-dome-breathe {
+      0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+        box-shadow:
+          0 16px 32px rgba(185, 28, 28, 0.5),
+          0 4px 8px rgba(0, 0, 0, 0.12),
+          0 0 0 0 rgba(239, 68, 68, 0.55),
+          inset 0 -12px 24px rgba(69, 10, 10, 0.5),
+          inset 0 10px 20px rgba(255, 255, 255, 0.28);
+      }
+      50% {
+        transform: translate(-50%, -50%) scale(1.06);
+        box-shadow:
+          0 22px 42px rgba(185, 28, 28, 0.62),
+          0 4px 8px rgba(0, 0, 0, 0.1),
+          0 0 0 18px rgba(239, 68, 68, 0.28),
+          inset 0 -12px 24px rgba(69, 10, 10, 0.48),
+          inset 0 10px 20px rgba(255, 255, 255, 0.32);
+      }
+    }
+    /* Блик (отблеск) */
+    .hero-btn-gloss {
+      position: absolute;
+      left: 14%;
+      right: 14%;
+      top: 10%;
+      height: 38%;
+      border-radius: 50%;
+      background: linear-gradient(
+        165deg,
+        rgba(255, 255, 255, 0.95) 0%,
+        rgba(255, 255, 255, 0.55) 35%,
+        rgba(255, 255, 255, 0.08) 70%,
+        transparent 100%
+      );
+      filter: blur(0.5px);
+      pointer-events: none;
+    }
+    .hero-btn-gloss::after {
+      content: "";
+      position: absolute;
+      width: 22%;
+      height: 18%;
+      left: 22%;
+      top: 18%;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.9);
+      filter: blur(2px);
+    }
+    /* Тонкий ободок */
+    .hero-btn-rim {
+      position: absolute;
+      inset: 3%;
+      border-radius: 50%;
+      box-shadow:
+        inset 0 1px 2px rgba(255, 255, 255, 0.5),
+        inset 0 -2px 6px rgba(0, 0, 0, 0.2);
+      pointer-events: none;
+    }
+    .hero-cta:hover .hero-btn-dome {
+      animation: none;
+      transform: translate(-50%, -52%) scale(1.08);
+      box-shadow:
+        0 22px 44px rgba(185, 28, 28, 0.58),
+        0 6px 12px rgba(0, 0, 0, 0.14),
+        0 0 0 12px rgba(239, 68, 68, 0.22),
+        inset 0 -12px 24px rgba(69, 10, 10, 0.48),
+        inset 0 12px 22px rgba(255, 255, 255, 0.32);
+    }
+    .hero-cta:active .hero-btn-dome {
+      animation: none;
+      transform: translate(-50%, -48%) scale(0.95);
+      box-shadow:
+        0 8px 18px rgba(185, 28, 28, 0.45),
+        inset 0 -6px 16px rgba(40, 8, 8, 0.55),
+        inset 0 6px 12px rgba(255, 255, 255, 0.2);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .hero-btn-dome {
+        animation: hero-dome-breathe 3.5s ease-in-out infinite;
+      }
+      .hero-btn-pulse {
+        animation-duration: 3.5s;
+        border-width: 3px;
+      }
+      .hero-btn-pulse--2 { animation-delay: 1.75s; }
+      .hero-btn-shadow { animation-duration: 3.5s; }
+    }
+    .hero-tagline {
+      margin: 0 0 0.35rem;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--red);
+    }
+    .hero h1 {
+      margin: 0.75rem 0 0.5rem;
+      font-size: clamp(1.75rem, 6vw, 2.35rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+    }
+    .hero h1 em {
+      font-style: normal;
+      color: var(--red);
+    }
+    .hero .lead {
+      margin: 0 auto;
+      max-width: 34rem;
+      color: var(--muted);
+      font-size: 1.05rem;
+    }
+
+    .section-title {
+      margin: 0 0 0.35rem;
+      font-size: 1.2rem;
+      font-weight: 700;
+      text-align: center;
+    }
+    .section-hint {
+      margin: 0 0 1.25rem;
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .choices {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+    @media (max-width: 520px) { .choices { grid-template-columns: 1fr; } }
+
+    .choice {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+      padding: 1.1rem 1.15rem;
+      background: var(--card);
+      border: 2px solid var(--line);
+      border-radius: var(--radius);
+      text-align: left;
+      cursor: pointer;
+      font: inherit;
+      color: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .choice:hover {
+      border-color: #fecaca;
+      box-shadow: 0 8px 28px rgba(220, 38, 38, 0.12);
+    }
+    .choice:focus-visible {
+      outline: 3px solid #2563eb;
+      outline-offset: 2px;
+    }
+    .choice:active { transform: scale(0.99); }
+    .choice.is-active {
+      border-color: var(--red);
+      box-shadow: 0 0 0 1px var(--red);
+      background: var(--red-soft);
+    }
+    .choice-icon {
+      width: 2.5rem;
+      height: 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      background: var(--red-soft);
+      color: var(--red);
+    }
+    .choice-icon svg { width: 1.35rem; height: 1.35rem; }
+    .choice h2 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+    .choice p {
+      margin: 0;
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+    .choice-action {
+      margin-top: auto;
+      padding-top: 0.35rem;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--red);
+    }
+
+    .vk-communities {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .vk-card {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      padding: 1.1rem 1.2rem;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      color: inherit;
+    }
+    .vk-card-head {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+    }
+    .vk-card-logo {
+      width: 44px;
+      height: 44px;
+      object-fit: contain;
+      flex-shrink: 0;
+    }
+    .vk-card-logo--plus {
+      width: 44px;
+      height: 44px;
+      object-fit: cover;
+      object-position: top center;
+      border-radius: 50%;
+    }
+    .vk-card h3 { margin: 0; font-size: 1rem; line-height: 1.3; }
+    .vk-card p { margin: 0; font-size: 0.85rem; color: var(--muted); line-height: 1.45; }
+    .vk-card span.action-primary {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--red);
+      margin-top: 0.35rem;
+    }
+    .vk-card span.action-secondary {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-top: 0.15rem;
+    }
+    .vk-card-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      margin-top: 0.5rem;
+    }
+    .vk-card-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 0.55rem 1rem;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: background 0.2s, color 0.2s;
+    }
+    .vk-card-btn-primary {
+      background: var(--red);
+      color: #fff;
+    }
+    .vk-card-btn-primary:hover {
+      background: var(--red-dark);
+      color: #fff;
+      text-decoration: none;
+    }
+    .vk-card-btn-outline {
+      background: transparent;
+      color: var(--red);
+      border: 2px solid var(--red);
+    }
+    .vk-card-btn-outline:hover {
+      background: var(--red-soft);
+      text-decoration: none;
+    }
+    .vk-card-btn-vk {
+      background: var(--red);
+      color: #fff;
+      border: 2px solid var(--red-dark);
+    }
+    .vk-card-btn-vk:hover {
+      background: var(--red-dark);
+      color: #fff;
+      text-decoration: none;
+    }
+    .vk-invite-banner {
+      margin: 0 0 1.25rem;
+      padding: 1rem 1.15rem;
+      border-radius: var(--radius);
+      border: 2px solid #fecaca;
+      background: linear-gradient(135deg, var(--red-soft) 0%, #fff 100%);
+    }
+    .vk-invite-banner p {
+      margin: 0 0 0.75rem;
+      font-size: 0.92rem;
+      color: #1a1230;
+    }
+    .vk-invite-banner .vk-card-actions {
+      margin-top: 0;
+    }
+
+    .panel {
+      margin: 2rem 0;
+      padding: 1.25rem;
+      background: var(--card);
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      box-shadow: 0 12px 40px rgba(15, 23, 42, 0.06);
+    }
+    .panel[hidden] { display: none !important; }
+    .panel-head {
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .dot {
+      width: 0.5rem;
+      height: 0.5rem;
+      border-radius: 50%;
+      background: #22c55e;
+    }
+
+    .btn-row { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 1rem; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      min-height: 48px;
+      padding: 0.65rem 1.2rem;
+      border-radius: 12px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s, transform 0.12s;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary {
+      background: var(--red);
+      color: #fff;
+    }
+    .btn-primary:hover { background: var(--red-dark); color: #fff; text-decoration: none; }
+    .btn-outline {
+      background: transparent;
+      color: var(--red);
+      border: 2px solid var(--red);
+    }
+    .btn-outline:hover { background: var(--red-soft); text-decoration: none; }
+
+    #chat { scroll-margin-top: 1rem; }
+
+    .chat {
+      display: flex;
+      flex-direction: column;
+      height: min(380px, 50vh);
+      border: 1px solid var(--line);
+      border-radius: 12px 12px 0 0;
+      overflow: hidden;
+      background: #f8fafc;
+    }
+    .chat-log {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+      scroll-padding-bottom: 0.75rem;
+    }
+    .bubble {
+      max-width: 88%;
+      padding: 0.65rem 0.85rem;
+      border-radius: 14px;
+      font-size: 0.92rem;
+      line-height: 1.5;
+    }
+    .bubble.bot {
+      align-self: flex-start;
+      background: var(--bot-bubble);
+      border-bottom-left-radius: 4px;
+    }
+    .bubble.user {
+      align-self: flex-end;
+      background: var(--user-bubble);
+      border-bottom-right-radius: 4px;
+    }
+    .bubble-typing {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--muted);
+      font-style: normal;
+      min-height: 2.5rem;
+    }
+    .typing-label {
+      font-size: 0.88rem;
+    }
+    .typing-dots {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.2rem;
+      height: 1rem;
+    }
+    .typing-dots span {
+      width: 0.45rem;
+      height: 0.45rem;
+      border-radius: 50%;
+      background: #94a3b8;
+      animation: rb-typing-bounce 1.2s ease-in-out infinite;
+    }
+    .typing-dots span:nth-child(2) { animation-delay: 0.15s; }
+    .typing-dots span:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes rb-typing-bounce {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.45; }
+      30% { transform: translateY(-4px); opacity: 1; }
+    }
+    .chat-input,
+    .chat-quick {
+      flex-shrink: 0;
+    }
+    .chat-input {
+      display: flex;
+      gap: 0.5rem;
+      padding: 0.65rem;
+      border-top: 1px solid var(--line);
+      background: var(--card);
+    }
+    .chat-input textarea {
+      flex: 1;
+      resize: none;
+      min-height: 44px;
+      max-height: 120px;
+      padding: 0.55rem 0.75rem;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      font: inherit;
+    }
+    .chat-input button {
+      flex-shrink: 0;
+      min-width: 44px;
+      border-radius: 10px;
+      border: none;
+      background: var(--red);
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .chat-input button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .chat-input--phone textarea {
+      border-color: #c41e3a;
+      box-shadow: 0 0 0 1px rgba(196, 30, 58, 0.25);
+    }
+    .chat-call-bar {
+      padding: 0.65rem;
+      border: 1px solid var(--line);
+      border-top: none;
+      border-radius: 0 0 12px 12px;
+      background: var(--card);
+    }
+    .chat-call-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.15rem;
+      width: 100%;
+      max-width: 100%;
+      padding: 0.65rem 0.75rem;
+      border-radius: 12px;
+      border: none;
+      background: var(--red);
+      color: #fff;
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 700;
+      line-height: 1.3;
+      text-align: center;
+      text-decoration: none;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(196, 30, 58, 0.28);
+      box-sizing: border-box;
+    }
+    .chat-call-btn:hover {
+      background: var(--red-dark);
+      color: #fff;
+      text-decoration: none;
+    }
+    .chat-call-btn__title {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .chat-call-btn__num {
+      font-weight: 600;
+      font-size: 0.82rem;
+      opacity: 0.92;
+      white-space: nowrap;
+    }
+    @media (max-width: 768px) {
+      .chat {
+        height: min(460px, calc(100dvh - 11rem));
+      }
+      .chat-input textarea {
+        font-size: 16px;
+      }
+    }
+    @media (max-width: 360px) {
+      .chat-call-btn__num { white-space: normal; }
+    }
+    .chat-quick {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      padding: 0 0.65rem 0.65rem;
+      border-top: 1px solid var(--line);
+      background: var(--card);
+    }
+    .chat-quick:empty { display: none; padding: 0; border: none; }
+    .chat-quick--channels {
+      padding: 0.75rem 0.65rem 0.85rem;
+      background: linear-gradient(180deg, #fff5f5 0%, #ffffff 100%);
+      border-top: 2px solid #fecaca;
+      box-shadow: 0 -4px 20px rgba(220, 38, 38, 0.08);
+    }
+    .chat-quick__hint {
+      flex: 1 1 100%;
+      margin: 0 0 0.35rem 0.15rem;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--red-dark);
+      letter-spacing: 0.02em;
+    }
+    .chat-reply-btn {
+      padding: 0.45rem 0.75rem;
+      border-radius: 999px;
+      border: 1px solid #fecaca;
+      background: var(--red-soft);
+      color: var(--red-dark);
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.12s, box-shadow 0.15s;
+    }
+    .chat-reply-btn:hover { background: #fee2e2; }
+    .chat-reply-btn:active { transform: scale(0.97); }
+    .chat-reply-btn--channel {
+      background: #fff;
+      border: 2px solid var(--red);
+      color: var(--red-dark);
+      box-shadow: 0 2px 10px rgba(220, 38, 38, 0.15);
+      padding: 0.55rem 0.95rem;
+      font-size: 0.86rem;
+    }
+    .chat-reply-btn--channel:hover {
+      background: var(--red);
+      color: #fff;
+      border-color: var(--red-dark);
+      box-shadow: 0 4px 14px rgba(220, 38, 38, 0.28);
+    }
+    .chat-reply-btn--call {
+      background: var(--red);
+      color: #fff;
+      border: 2px solid var(--red-dark);
+      box-shadow: 0 2px 10px rgba(185, 28, 28, 0.25);
+    }
+    .chat-reply-btn--call:hover {
+      background: var(--red-dark);
+      border-color: #7f1d1d;
+    }
+
+    .trust {
+      margin: 2rem 0 2.5rem;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 0.65rem;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+    .trust li {
+      padding-left: 1.5rem;
+      position: relative;
+    }
+    .trust li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0.45rem;
+      width: 0.5rem;
+      height: 0.5rem;
+      border-radius: 50%;
+      background: var(--red);
+      opacity: 0.85;
+    }
+
+    footer {
+      text-align: center;
+      padding: 1.5rem 0 2rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .config-note {
+      margin-top: 1.5rem;
+      padding: 0.75rem 1rem;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 10px;
+      font-size: 0.8rem;
+      color: #92400e;
+    }
+    .config-note code { font-size: 0.78rem; word-break: break-all; }
+  </style>
+</head>
+<body>
+  <!--
+    SETUP (replace with your VK chat link):
+    Example: https://vk.com/im?sel=-123456789  or  https://vk.me/nickname
+  -->
+  <script src="../metrika-config.js"></script>
+  <script src="../chat-config.js"></script>
+  <script>
+    window.RED_BUTTON = {
+      phone: "+79095354090",
+      phoneDisplay: "+7 (909) 535-40-90",
+      bullyPhone: "+79236781121",
+      bullyPhoneDisplay: "+7 (923) 678-11-21",
+      childLine: "8-800-2000-122",
+      siteUrl: "https://redbuttonhelp.ru/en/",
+      telegram: "https://t.me/impuls_red_bot",
+      telegramHandle: "@impuls_red_bot",
+      vk: "https://vk.me/RedButtonHelp",
+      impulsSite: "https://narkohelpomsk.ru/?utm_source=redbuttonhelp&utm_medium=site&utm_campaign=omsk",
+      impulsPlusSite: "https://impulsplus55.ru/?utm_source=redbuttonhelp&utm_medium=site&utm_campaign=omsk",
+      vkMeImpuls: "https://vk.me/impuls_omsk?utm_source=redbuttonhelp&utm_medium=site&utm_campaign=omsk&utm_content=write_bot_impuls",
+      vkMeWomen: "https://vk.me/women_club_omsk?utm_source=redbuttonhelp&utm_medium=site&utm_campaign=omsk&utm_content=write_bot_women",
+      impulsSiteName: "narkohelpomsk.ru",
+      impulsPlusSiteName: "impulsplus55.ru",
+      chatApi: "",
+      metrikaId: ""
+    };
+    if (window.RED_BUTTON_CHAT_API) {
+      window.RED_BUTTON.chatApi = String(window.RED_BUTTON_CHAT_API).trim();
+    }
+    if (window.RED_BUTTON_METRIKA_ID) {
+      window.RED_BUTTON.metrikaId = String(window.RED_BUTTON_METRIKA_ID).trim();
+    }
+  </script>
+  <!-- Yandex.Metrika counter -->
+  <script>
+    (function () {
+      var id = (window.RED_BUTTON_METRIKA_ID || (window.RED_BUTTON && window.RED_BUTTON.metrikaId) || "").toString().trim();
+      if (!id) return;
+      window.dataLayer = window.dataLayer || [];
+      (function (m, e, t, r, i, k, a) {
+        m[i] = m[i] || function () { (m[i].a = m[i].a || []).push(arguments); };
+        m[i].l = 1 * new Date();
+        for (var j = 0; j < document.scripts.length; j++) {
+          if (document.scripts[j].src === r) return;
+        }
+        k = e.createElement(t);
+        a = e.getElementsByTagName(t)[0];
+        k.async = 1;
+        k.src = r;
+        a.parentNode.insertBefore(k, a);
+      })(window, document, "script", "https://mc.yandex.ru/metrika/tag.js?id=" + id, "ym");
+      ym(id, "init", {
+        ssr: true,
+        webvisor: true,
+        clickmap: true,
+        ecommerce: "dataLayer",
+        referrer: document.referrer,
+        url: location.href,
+        accurateTrackBounce: true,
+        trackLinks: true
+      });
+      window.RED_BUTTON_trackGoal = function (goal) {
+        if (window.ym) ym(id, "reachGoal", goal);
+      };
+    })();
+  </script>
+  <noscript><div><img src="https://mc.yandex.ru/watch/109644532" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+  <!-- /Yandex.Metrika counter -->
+
+
+  <style>
+    .lang-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      position: relative;
+    }
+    .lang-switch {
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      display: inline-flex;
+      gap: 0.35rem;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+    .lang-switch a,
+    .lang-switch span {
+      color: var(--muted);
+      text-decoration: none;
+      padding: 0.25rem 0.45rem;
+      border-radius: 8px;
+    }
+    .lang-switch a:hover { color: var(--red); text-decoration: none; background: var(--red-soft); }
+    .lang-switch [aria-current="page"] {
+      color: var(--red);
+      background: var(--red-soft);
+    }
+    @media (max-width: 520px) {
+      .lang-switch { position: static; transform: none; }
+    }
+  </style>
+
+  <header class="wrap lang-header">
+    <div class="badge"><span>●</span> Anonymous · no judgment</div>
+    <nav class="lang-switch" aria-label="Language">
+      <a href="../">RU</a>
+      <span aria-current="page">EN</a>
+    </nav>
+  </header>
+
+  <section class="hero wrap">
+    <div class="hero-visual">
+      <a class="hero-cta" href="#choice-title" aria-label="Red Button — tap to choose how to get help">
+        <span class="hero-btn-stage">
+          <span class="hero-btn-shadow" aria-hidden="true"></span>
+          <span class="hero-btn-pulse" aria-hidden="true"></span>
+          <span class="hero-btn-pulse hero-btn-pulse--2" aria-hidden="true"></span>
+          <span class="hero-btn-dome" aria-hidden="true">
+            <span class="hero-btn-gloss"></span>
+            <span class="hero-btn-rim"></span>
+          </span>
+        </span>
+      </a>
+    </div>
+    <p class="hero-tagline">Tap the button — choose how to get help</p>
+    <h1><em>Red Button</em> — anonymous help in Omsk</h1>
+    <p class="lead">Round-the-clock support for addiction, bullying, and crisis. Call, message on Telegram or VK — or start a chat right on this page. No judgment; you can stay anonymous.</p>
+  </section>
+
+  <section class="wrap" aria-labelledby="choice-title">
+    <h2 id="choice-title" class="section-title">How would you like to connect?</h2>
+    <p class="section-hint">Choose an option — a call, messenger, or chat will open below.</p>
+
+    <div class="choices" role="group" aria-label="Contact method">
+      <button type="button" class="choice" data-mode="call" id="choice-call">
+        <span class="choice-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        </span>
+        <h2>Call now</h2>
+        <p>Available 24/7. A person answers — not a bot.</p>
+        <span class="choice-action">Call →</span>
+      </button>
+
+      <button type="button" class="choice" data-mode="vk" id="choice-vk">
+        <span class="choice-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.07 2H8.93C3.33 2 2 3.33 2 8.93v6.14C2 20.67 3.33 22 8.93 22h6.14c5.6 0 6.93-1.33 6.93-6.93V8.93C22 3.33 20.67 2 15.07 2zm3.44 15.14h-1.26c-.48 0-.63-.39-1.49-1.27-.75-.72-1.08-.82-1.26-.82-.26 0-.34.07-.34.8v1.15c0 .57-.18.91-1.63.91-2.4 0-5.06-1.45-6.94-4.15-2.82-3.9-3.59-6.84-3.59-7.44 0-.33.09-.64.91-.64h1.27c.68 0 .79.31.99.9 1.12 3.17 3 5.94 3.77 5.94.29 0 .42-.13.42-.85V9.35c-.09-1.5-.87-1.62-.87-2.15 0-.26.21-.52.56-.52h1.99c.47 0 .64.25.64.81v3.65c0 .47.21.64.35.64.29 0 .52-.17 1.05-.68 1.62-1.82 2.78-4.62 2.78-4.62.14-.33.37-.64.94-.64h1.26c.57 0 .69.29.57.68-.24 1.12-2.57 4.42-2.57 4.42-.21.35-.29.51 0 .9.21.29.89 1.08 1.35 1.74.82 1.15 1.45 2.12 1.62 2.79.16.63-.16.95-.74.95z"/></svg>
+        </span>
+        <h2>Message on VK</h2>
+        <p>The same chat assistant as on the site. Send “Start”.</p>
+        <span class="choice-action">VK →</span>
+      </button>
+
+      <button type="button" class="choice" data-mode="tg" id="choice-tg">
+        <span class="choice-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.924 2.198a1 1 0 0 0-1.057-.1L2.34 10.17a1 1 0 0 0 .05 1.88l5.09 1.95 1.95 5.09a1 1 0 0 0 .9.63 1 1 0 0 0 .92-.62l2.35-5.81 6.52 6.52a1 1 0 0 0 1.41-1.41l-6.52-6.52 5.81-2.35a1 1 0 0 0 .62-.92 1 1 0 0 0-.35-.85z"/></svg>
+        </span>
+        <h2>Message on Telegram</h2>
+        <p>Step-by-step questions, tips, and phone numbers.</p>
+        <span class="choice-action">Telegram →</span>
+      </button>
+
+      <button type="button" class="choice" data-mode="site" id="choice-site">
+        <span class="choice-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </span>
+        <h2>On this site</h2>
+        <p>On-page chat — anonymous, at your own pace.</p>
+        <span class="choice-action">Open chat ↓</span>
+      </button>
+    </div>
+
+    <div id="panel-call" class="panel" hidden>
+      <div class="panel-head"><span class="dot" aria-hidden="true"></span> Call</div>
+      <p style="margin:0;color:var(--muted);font-size:0.95rem;">Call the number below — the line is open around the clock.</p>
+      <div class="btn-row">
+        <a class="btn btn-primary" id="tel-link" href="tel:+79095354090">Call <span id="tel-label"></span></a>
+        <button type="button" class="btn btn-outline" data-close-panel>Collapse</button>
+      </div>
+    </div>
+
+    <div id="panel-vk" class="panel" hidden>
+      <div class="panel-head"><span class="dot" aria-hidden="true"></span> VK</div>
+      <p style="margin:0;color:var(--muted);font-size:0.95rem;">Opens a chat with the Red Button community on VK.</p>
+      <div class="btn-row">
+        <a class="btn btn-primary" id="vk-link" href="https://vk.me/RedButtonHelp" target="_blank" rel="noopener noreferrer">Message on VK</a>
+        <button type="button" class="btn btn-outline" data-close-panel>Collapse</button>
+      </div>
+    </div>
+
+    <div id="panel-tg" class="panel" hidden>
+      <div class="panel-head"><span class="dot" aria-hidden="true"></span> Telegram</div>
+      <p style="margin:0;color:var(--muted);font-size:0.95rem;">Step-by-step questions, tips, and numbers — in the @impuls_red_bot bot.</p>
+      <div class="btn-row">
+        <a class="btn btn-primary" id="tg-link" href="https://t.me/impuls_red_bot" target="_blank" rel="noopener noreferrer">Open @impuls_red_bot</a>
+        <button type="button" class="btn btn-outline" data-close-panel>Collapse</button>
+      </div>
+    </div>
+
+    <p id="vk-config-warning" class="config-note" hidden>
+      Set your VK link in the script at the top of the page: <code>RED_BUTTON.vk = "https://vk.com/…"</code>
+    </p>
+  </section>
+
+  <section class="wrap" id="chat" aria-labelledby="chat-title">
+    <h2 id="chat-title" class="section-title">Chat on the site</h2>
+    <p class="section-hint">The same assistant as in Telegram — conversation, questions, and guidance. Need a live talk — use “Call” below. If life is at risk — call 112 or 103.</p>
+    <div class="panel" style="margin-top:0">
+      <div class="chat" role="log" aria-live="polite" aria-relevant="additions">
+        <div class="chat-log" id="chat-log">
+          <div class="bubble bot" id="chat-boot-msg">Hello! Connecting the chat assistant…</div>
+        </div>
+        <div id="chat-quick" class="chat-quick" aria-label="Quick replies"></div>
+        <div class="chat-input">
+          <label for="chat-text" class="visually-hidden">Your message</label>
+          <textarea id="chat-text" rows="1" placeholder="Type a message…" maxlength="800"></textarea>
+          <button type="button" id="chat-send" aria-label="Send">→</button>
+        </div>
+      </div>
+      <div class="chat-call-bar">
+        <a class="chat-call-btn" id="chat-call-btn" href="tel:+79095354090">
+          <span class="chat-call-btn__title"><span aria-hidden="true">📞</span> Call</span>
+          <span class="chat-call-btn__num" id="chat-call-label"></span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap" id="centers" aria-labelledby="centers-title">
+    <h2 id="centers-title" class="section-title">Impuls centers in Omsk</h2>
+    <p class="section-hint">Official rehab centers in Omsk — contacts and websites. You can message a specialist on VK or open the center’s site.</p>
+    <div class="vk-invite-banner">
+      <p>Need in-person help or a live conversation? Message a center specialist on VK — they will respond and guide you on next steps.</p>
+      <div class="vk-card-actions">
+        <a class="vk-card-btn vk-card-btn-vk" id="vk-me-impuls-banner" href="https://vk.me/impuls_omsk" target="_blank" rel="noopener noreferrer">Message: Impuls</a>
+        <a class="vk-card-btn vk-card-btn-vk" id="vk-me-women-banner" href="https://vk.me/women_club_omsk" target="_blank" rel="noopener noreferrer">Message: Impuls Plus</a>
+      </div>
+    </div>
+    <div class="vk-communities">
+      <article class="vk-card" id="card-impuls">
+        <div class="vk-card-head">
+          <img class="vk-card-logo" src="../assets/logo-impuls-icon.svg" alt="" width="44" height="44" decoding="async">
+          <h3>Impuls Rehabilitation Center</h3>
+        </div>
+        <p>For men with addiction and their loved ones: rehab, 24/7 consultation, help without judgment.</p>
+        <div class="vk-card-actions">
+          <a class="vk-card-btn vk-card-btn-vk" id="vk-me-impuls-link" href="https://vk.me/impuls_omsk" target="_blank" rel="noopener noreferrer">Message on VK</a>
+          <a class="vk-card-btn vk-card-btn-primary" id="impuls-site-link" href="https://narkohelpomsk.ru/" target="_blank" rel="noopener noreferrer">Website narkohelpomsk.ru</a>
+        </div>
+      </article>
+      <article class="vk-card" id="card-impuls-plus">
+        <div class="vk-card-head">
+          <img class="vk-card-logo vk-card-logo--plus" src="../assets/logo-impuls-plus.png" alt="" width="44" height="44" decoding="async">
+          <h3>Impuls Plus — women’s rehab</h3>
+        </div>
+        <p>For women: addiction, codependency, masks, and a path to sobriety without judgment.</p>
+        <div class="vk-card-actions">
+          <a class="vk-card-btn vk-card-btn-vk" id="vk-me-women-link" href="https://vk.me/women_club_omsk" target="_blank" rel="noopener noreferrer">Message on VK</a>
+          <a class="vk-card-btn vk-card-btn-primary" id="impulsplus-site-link" href="https://impulsplus55.ru/" target="_blank" rel="noopener noreferrer">Website impulsplus55.ru</a>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="wrap">
+    <ul class="trust">
+      <li>We do not share your messages with third parties unless you need us to.</li>
+      <li>You don’t have to share your name — write in whatever way feels comfortable.</li>
+      <li>If life or health is at risk, call <strong>112</strong> or emergency services.</li>
+    </ul>
+  </section>
+
+  <footer class="wrap">
+    <p>Red Button is an anonymous hotline. The on-site chat does not replace in-person care; if life is at risk — call 112 or 103.</p>
+    <p style="margin-top:1rem;font-weight:700;">Helpful resources</p>
+    <p style="margin:0.35rem 0 0;color:var(--muted);font-size:0.85rem;">Linked articles below are in Russian.</p>
+    <ul style="margin:0.5rem 0 0;padding-left:1.1rem;line-height:1.7;">
+      <li><a href="../pomoshch-omsk.html">Anonymous help in Omsk</a></li>
+      <li><a href="../zavisimost.html">Help with addiction</a></li>
+      <li><a href="../bulling.html">Bullying: where to turn</a></li>
+      <li><a href="../krizis.html">Crisis support 24/7</a></li>
+      <li><a href="../centry-impuls.html">Impuls centers in Omsk</a></li>
+    </ul>
+    <p style="margin-top:0.75rem;"><a href="../privacy.html">Privacy policy</a></p>
+  </footer>
+
+  <style>
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+  </style>
+
+  <script>
+    (function () {
+      var canonical = document.querySelector('link[rel="canonical"]');
+      var ogUrl = document.querySelector('meta[property="og:url"]');
+      var pageUrl = window.location.origin + window.location.pathname;
+      if (canonical) canonical.href = pageUrl;
+      if (ogUrl) ogUrl.content = pageUrl;
+
+      var C = window.RED_BUTTON || {};
+      var phone = C.phone || "+79095354090";
+      var phoneDisplay = C.phoneDisplay || phone;
+      var tgUrl = C.telegram || "https://t.me/impuls_red_bot";
+      var vkUrl = C.vk || "";
+      var impulsSite = C.impulsSite || "https://narkohelpomsk.ru/";
+      var impulsPlusSite = C.impulsPlusSite || "https://impulsplus55.ru/";
+      var vkMeImpuls = C.vkMeImpuls || "https://vk.me/impuls_omsk";
+      var vkMeWomen = C.vkMeWomen || "https://vk.me/women_club_omsk";
+
+      var telHref = "tel:" + phone.replace(/\s/g, "");
+      document.getElementById("tel-link").href = telHref;
+      document.getElementById("tel-label").textContent = phoneDisplay;
+      var chatCall = document.getElementById("chat-call-btn");
+      var chatCallLabel = document.getElementById("chat-call-label");
+      if (chatCall) {
+        chatCall.href = telHref;
+        chatCall.setAttribute("aria-label", "Call the hotline " + phoneDisplay);
+      }
+      if (chatCallLabel) chatCallLabel.textContent = phoneDisplay;
+      document.getElementById("tg-link").href = tgUrl;
+      var tgLink = document.getElementById("tg-link");
+      if (tgLink) {
+        tgLink.addEventListener("click", function () {
+          trackGoal("open_telegram_bot");
+        });
+      }
+
+      var impulsSiteLink = document.getElementById("impuls-site-link");
+      var impulsPlusSiteLink = document.getElementById("impulsplus-site-link");
+      if (impulsSiteLink) {
+        impulsSiteLink.href = impulsSite;
+        impulsSiteLink.addEventListener("click", function () {
+          trackGoal("visit_narkohelpomsk");
+        });
+      }
+      if (impulsPlusSiteLink) {
+        impulsPlusSiteLink.href = impulsPlusSite;
+        impulsPlusSiteLink.addEventListener("click", function () {
+          trackGoal("visit_impulsplus55");
+        });
+      }
+
+      function wireVkLink(id, url, goal) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.href = url;
+        el.addEventListener("click", function () {
+          if (goal) trackGoal(goal);
+        });
+      }
+      wireVkLink("vk-me-impuls-link", vkMeImpuls, "write_bot_impuls");
+      wireVkLink("vk-me-women-link", vkMeWomen, "write_bot_women");
+      wireVkLink("vk-me-impuls-banner", vkMeImpuls, "write_bot_impuls");
+      wireVkLink("vk-me-women-banner", vkMeWomen, "write_bot_women");
+
+      var vkLink = document.getElementById("vk-link");
+      var vkWarn = document.getElementById("vk-config-warning");
+      if (vkUrl && vkUrl !== "https://vk.com/") {
+        vkLink.href = vkUrl;
+        vkWarn.hidden = true;
+      } else {
+        vkLink.href = "#";
+        vkLink.addEventListener("click", function (e) {
+          e.preventDefault();
+          vkWarn.hidden = false;
+          vkWarn.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        });
+      }
+
+      var panels = {
+        call: document.getElementById("panel-call"),
+        vk: document.getElementById("panel-vk"),
+        tg: document.getElementById("panel-tg")
+      };
+
+      function hideAllPanels() {
+        Object.keys(panels).forEach(function (k) {
+          panels[k].hidden = true;
+        });
+      }
+
+      function setActiveChoice(mode) {
+        document.querySelectorAll(".choice").forEach(function (el) {
+          el.classList.toggle("is-active", el.getAttribute("data-mode") === mode);
+        });
+      }
+
+      function trackGoal(goal) {
+        if (typeof window.RED_BUTTON_trackGoal === "function") {
+          window.RED_BUTTON_trackGoal(goal);
+        }
+      }
+
+      document.querySelectorAll(".choice").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var mode = btn.getAttribute("data-mode");
+          trackGoal("choice_" + mode);
+          setActiveChoice(mode);
+          hideAllPanels();
+
+          if (mode === "call") {
+            panels.call.hidden = false;
+            panels.call.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          } else if (mode === "vk") {
+            if (vkUrl && vkUrl !== "https://vk.com/") {
+              window.open(vkUrl, "_blank", "noopener,noreferrer");
+            }
+            panels.vk.hidden = false;
+            panels.vk.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          } else if (mode === "tg") {
+            window.open(tgUrl, "_blank", "noopener,noreferrer");
+            panels.tg.hidden = false;
+            panels.tg.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          } else if (mode === "site") {
+            document.getElementById("chat").scrollIntoView({ behavior: "smooth", block: "start" });
+            var inp = document.getElementById("chat-text");
+            if (inp && !window.matchMedia("(max-width: 768px)").matches) inp.focus();
+          }
+        });
+      });
+
+      document.querySelectorAll("[data-close-panel]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          hideAllPanels();
+          setActiveChoice(null);
+        });
+      });
+
+      function scrollToHash() {
+        var h = (location.hash || "").replace(/^#/, "");
+        if (h === "chat") {
+          setActiveChoice("site");
+          var chatEl = document.getElementById("chat");
+          if (chatEl) chatEl.scrollIntoView({ behavior: "smooth", block: "start" });
+          setTimeout(function () {
+            var inp = document.getElementById("chat-text");
+            if (inp && !window.matchMedia("(max-width: 768px)").matches) inp.focus();
+          }, 400);
+        } else if (h === "choice-title") {
+          var choiceEl = document.getElementById("choice-title");
+          if (choiceEl) choiceEl.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }
+      scrollToHash();
+      window.addEventListener("hashchange", scrollToHash);
+
+    })();
+  </script>
+  <script>window.__RB_DEFER_LITE = true;</script>
+  <script src="../chat-lite.en.js?v=1"></script>
+  <script src="../site-chat-gpt.en.js?v=1"></script>
+</body>
+</html>
