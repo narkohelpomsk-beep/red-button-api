@@ -21,6 +21,7 @@ const IMPULS_SEO_PAGE_TITLE = 'Реабилитационный центр «И�
 const IMPULS_SEO_H1 = 'Реабилитационный центр «Импульс» в Омске';
 const IMPULS_SEO_2GIS = 'https://2gis.ru/omsk/firm/70000001033512039';
 const IMPULS_SEO_YANDEX_MAPS = 'https://yandex.ru/maps/org/impuls/199394486863/';
+// Do not add https://yandex.ru/maps/org/impuls_plyus/56854615182/ — that is Impulse Plus (women), not this org.
 const IMPULS_SEO_OG_IMAGE = '/wp-content/uploads/og-image-1200x630.jpg';
 
 /**

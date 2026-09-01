@@ -35,7 +35,7 @@
 - тип: `["NGO","LocalBusiness"]` — **не** `MedicalClinic`, **не** `MedicalWebPage`;
 - `taxID` 5504151921, ОГРН 1175543039913, ОКВЭД 87.90;
 - `postalCode` **644070** (как в 2ГИС; в schema сейчас 644000);
-- `sameAs`: 2ГИС `https://2gis.ru/omsk/firm/70000001033512039` и Яндекс Карты `https://yandex.ru/maps/org/impuls/199394486863/` (ID 199394486863; Справочник: https://yandex.ru/sprav/199394486863);
+- `sameAs`: 2ГИС `https://2gis.ru/omsk/firm/70000001033512039` и Яндекс Карты **только** `https://yandex.ru/maps/org/impuls/199394486863/` (ID 199394486863; Справочник: https://yandex.ru/sprav/199394486863). Не подставлять женскую карту `…/impuls_plyus/56854615182/`;
 - `department` — ООО «ДА-компани» как медпартнёр со ссылкой на `/licenziya/`;
 - description **без** «медикаментозного лечения».
 
@@ -166,10 +166,20 @@ Yoast → Search Appearance → Graph / Schema: Organization description зам�
 **2ГИС (публичная карточка):** `https://2gis.ru/omsk/firm/70000001033512039`  
 Не использовать кабинет `account.2gis.com/orgs/…12038`.
 
-**Яндекс:** карточка есть. Канон Карт: `https://yandex.ru/maps/org/impuls/199394486863/`  
-Справочник (тот же ID, без редиректа на maps): `https://yandex.ru/sprav/199394486863`
+**Яндекс — две организации:**
 
-Оба URL — в `sameAs` Organization/NGO/LocalBusiness вместе с VK и Telegram.
+| Бренд | Канон Карт | ID | Сайт в карточке |
+|---|---|---|---|
+| «Импульс» (основной) | `https://yandex.ru/maps/org/impuls/199394486863/` | 199394486863 | narkohelpomsk.ru |
+| «Импульс Плюс» (женщины) | `https://yandex.ru/maps/org/impuls_plyus/56854615182/` | 56854615182 | impulsplus55.ru |
+
+Справочник основного: `https://yandex.ru/sprav/199394486863`.
+
+На **narkohelpomsk.ru** в `sameAs` / `hasMap` — только основная карта (без `ll`/`z`). Карту Плюса сюда не ставить.
+
+На **impulsplus55.ru** в schema уже есть `https://yandex.ru/maps/org/impuls_plyus/56854615182/` (WP-админки у плюса нет: `/wp-admin/` и `/wp-login.php` отдают 404). Там же ошибочно `sameAs` на 2ГИС основного `…12039` — править, когда появится CMS-доступ.
+
+**В Яндекс Бизнесе (не в git):** третью карточку не создавать. Если разные юрлица — не склеивать. У Плюса: название «Импульс Плюс», сайт только impulsplus55.ru, телефон только +7 962 053-18-63 (убрать общие 909/965). Цель — чтобы запрос «реабилитационный центр импульс омск» вёл на 199394486863.
 
 ---
 
@@ -234,4 +244,4 @@ curl -sI https://www.narkohelpomsk.ru/prise/ | grep -i location
 curl -sL https://www.narkohelpomsk.ru/rasschitat-stoimost/ | grep -o '<h1[^>]*>.*</h1>'
 ```
 
-Google Business Profile из репозитория не создать — только из кабинета организации. Карточка Яндекс Карт уже есть (`199394486863`).
+Google Business Profile из репозитория не создать. Публичный URL по cid `16892342034457875612` не найден (Карты пустые, не Омск) — нужна ссылка `google.com/maps/place/...`. Карточки Яндекс: основной `199394486863`, Плюс `56854615182`.
