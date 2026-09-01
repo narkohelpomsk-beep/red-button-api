@@ -468,7 +468,7 @@ Google в этой нише = **E-E-A-T + уникальные страницы 
 
 ## 15. Что сделано в этом репозитории и на сайте
 
-Исходников WordPress в git нет. **1 сентября 2026 правки накатаны на живой сайт** через wp-admin (тема Impulse: `library/seo-technical.php` и связанные шаблоны). Проверка снаружи: NGO/LocalBusiness, FAQPage, 301 `/prise/`, H1 калькулятора, один GTM, Google Maps в `sameAs`.
+Исходников WordPress в git нет. **1 сентября 2026 правки накатаны на живой сайт** через wp-admin (тема Impulse: `library/seo-technical.php`, `library/seo-meta.php`, лендинги, главная, контакты). Снаружи: NGO/LocalBusiness, FAQPage на главной + нарко/алкоголь/цены, 301 дублей, ключ в начале title, уникальные H1, цена/Омск/24/7 в description, перелинковка с главной и хаба родственников, NAP на контактах (Яндекс+Google+2ГИС), один GTM, Google Maps в `sameAs`. Карту Плюса в sameAs не ставили.
 
 Эталон повторного применения: `docs/seo-fixes/APPLY.md`.
 
