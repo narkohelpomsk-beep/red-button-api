@@ -52,8 +52,8 @@
       },
       "geo": {
         "@type": "GeoCoordinates",
-        "latitude": "54.989347",
-        "longitude": "73.368221"
+        "latitude": "54.9827326",
+        "longitude": "73.3928691"
       },
       "openingHoursSpecification": {
         "@type": "OpeningHoursSpecification",
@@ -85,6 +85,7 @@
         "https://2gis.ru/omsk/firm/70000001033512039",
         "https://yandex.ru/maps/org/impuls/199394486863/",
         "https://yandex.ru/sprav/199394486863",
+        "https://www.google.com/maps?cid=15314458287710222197",
         "https://vk.com/impuls_omsk",
         "https://t.me/impuls_red_bot",
         "https://impulsplus55.ru/",

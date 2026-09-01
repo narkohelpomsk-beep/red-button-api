@@ -1,6 +1,6 @@
 # Готовые правки SEO для narkohelpomsk.ru
 
-**Статус на проде (1 сентября 2026):** правки внесены в живую тему Impulse через wp-admin (файлы `library/seo-technical.php`, `library/seo-meta.php`, футеры, шаблоны калькулятора и лендингов). Проверено снаружи: главная без `MedicalClinic` и SearchAction, есть NGO/LocalBusiness и FAQPage, `/prise/` → 301 на цены, у калькулятора есть H1, GTM один ID `GTM-PBHDQPHM`. Учётные данные WP в этот репозиторий не записывались.
+**Статус на проде (1 сентября 2026):** правки внесены в живую тему Impulse через wp-admin (файлы `library/seo-technical.php`, `library/seo-meta.php`, футеры, шаблоны калькулятора и лендингов). Проверено снаружи: главная без `MedicalClinic` и SearchAction, есть NGO/LocalBusiness и FAQPage, `/prise/` → 301 на цены, у калькулятора есть H1, GTM один ID `GTM-PBHDQPHM`. В JSON-LD `sameAs` — 2ГИС, Яндекс Карты `…/impuls/199394486863/`, Google `https://www.google.com/maps?cid=15314458287710222197`; geo маркера Google: 54.9827326, 73.3928691. Учётные данные WP в этот репозиторий не записывались.
 
 Этот git-репозиторий — Python-бот (red-button-api), не исходники WordPress. Ниже — эталон для повторного применения.
 
@@ -35,7 +35,8 @@
 - тип: `["NGO","LocalBusiness"]` — **не** `MedicalClinic`, **не** `MedicalWebPage`;
 - `taxID` 5504151921, ОГРН 1175543039913, ОКВЭД 87.90;
 - `postalCode` **644070** (как в 2ГИС; в schema сейчас 644000);
-- `sameAs`: 2ГИС `https://2gis.ru/omsk/firm/70000001033512039` и Яндекс Карты **только** `https://yandex.ru/maps/org/impuls/199394486863/` (ID 199394486863; Справочник: https://yandex.ru/sprav/199394486863). Не подставлять женскую карту `…/impuls_plyus/56854615182/`;
+- `sameAs`: 2ГИС `https://2gis.ru/omsk/firm/70000001033512039`, Яндекс Карты **только** `https://yandex.ru/maps/org/impuls/199394486863/` (ID 199394486863; Справочник: https://yandex.ru/sprav/199394486863), Google Maps `https://www.google.com/maps?cid=15314458287710222197` (hex `0xd487e2ac56813775`, Knowledge `/g/11f71nqzrt`). Не подставлять женскую карту `…/impuls_plyus/56854615182/`;
+- `geo`: `54.9827326`, `73.3928691` (маркер публичной карточки Google; не старые 54.989347, 73.368221);
 - `department` — ООО «ДА-компани» как медпартнёр со ссылкой на `/licenziya/`;
 - description **без** «медикаментозного лечения».
 
@@ -161,7 +162,7 @@ Yoast → Search Appearance → Graph / Schema: Organization description зам�
 
 ---
 
-## 7. sameAs: 2ГИС и Яндекс Карты
+## 7. sameAs: 2ГИС, Яндекс Карты и Google
 
 **2ГИС (публичная карточка):** `https://2gis.ru/omsk/firm/70000001033512039`  
 Не использовать кабинет `account.2gis.com/orgs/…12038`.
@@ -175,7 +176,15 @@ Yoast → Search Appearance → Graph / Schema: Organization description зам�
 
 Справочник основного: `https://yandex.ru/sprav/199394486863`.
 
-На **narkohelpomsk.ru** в `sameAs` / `hasMap` — только основная карта (без `ll`/`z`). Карту Плюса сюда не ставить.
+На **narkohelpomsk.ru** в `sameAs` / `hasMap` — только основная карта Яндекса (без `ll`/`z`) плюс Google ниже. Карту Плюса сюда не ставить.
+
+**Google Maps (публичная карточка «Центр социальной помощи "Импульс"»):**
+
+- Канон `sameAs` без мусорных query: `https://www.google.com/maps?cid=15314458287710222197`
+- CID = decimal от hex `0xd487e2ac56813775` из `data=!…1s0x43aafde298c05df7:0xd487e2ac56813775`. Не использовать `15306184789080516341` (неверный перевод hex) и не использовать старый внутренний id `16892342034457875612`.
+- Knowledge Graph: `/g/11f71nqzrt` (`16s%2Fg%2F11f71nqzrt` в URL места).
+- Маркер: **54.9827326, 73.3928691** (`!8m2!3d54.9827326!4d73.3928691`).
+- Публичный place URL (имя в path, без extra query): [Карты](https://www.google.com/maps/place/%D0%A6%D0%B5%D0%BD%D1%82%D1%80+%D1%81%D0%BE%D1%86%D0%B8%D0%B0%D0%BB%D1%8C%D0%BD%D0%BE%D0%B9+%D0%BF%D0%BE%D0%BC%D0%BE%D1%89%D0%B8+%22%D0%98%D0%BC%D0%BF%D1%83%D0%BB%D1%8C%D1%81%22/@54.9827326,73.3928691,17z/data=!4m6!3m5!1s0x43aafde298c05df7:0xd487e2ac56813775!8m2!3d54.9827326!4d73.3928691!16s%2Fg%2F11f71nqzrt).
 
 На **impulsplus55.ru** в schema уже есть `https://yandex.ru/maps/org/impuls_plyus/56854615182/` (WP-админки у плюса нет: `/wp-admin/` и `/wp-login.php` отдают 404). Там же ошибочно `sameAs` на 2ГИС основного `…12039` — править, когда появится CMS-доступ.
 
@@ -242,6 +251,9 @@ curl -sI https://www.narkohelpomsk.ru/prise/ | grep -i location
 # Location: .../czeny-na-reabilitacziyu-alko-i-narkozavisimyh/
 
 curl -sL https://www.narkohelpomsk.ru/rasschitat-stoimost/ | grep -o '<h1[^>]*>.*</h1>'
+
+curl -sL https://www.narkohelpomsk.ru/ | grep -o 'https://www.google.com/maps?cid=[0-9]*'
+# https://www.google.com/maps?cid=15314458287710222197
 ```
 
-Google Business Profile из репозитория не создать. Публичный URL по cid `16892342034457875612` не найден (Карты пустые, не Омск) — нужна ссылка `google.com/maps/place/...`. Карточки Яндекс: основной `199394486863`, Плюс `56854615182`.
+Google в `sameAs` живой главной: `https://www.google.com/maps?cid=15314458287710222197` (карточка «Импульс», kg `/g/11f71nqzrt`). Старый внутренний cid `16892342034457875612` не использовать. Карточки Яндекс без изменений: основной `199394486863`, Плюс `56854615182` (Плюс не в sameAs narkohelpomsk.ru).

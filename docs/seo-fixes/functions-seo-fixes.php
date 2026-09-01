@@ -22,6 +22,7 @@ const IMPULS_SEO_H1 = 'Реабилитационный центр «Импул�
 const IMPULS_SEO_2GIS = 'https://2gis.ru/omsk/firm/70000001033512039';
 const IMPULS_SEO_YANDEX_MAPS = 'https://yandex.ru/maps/org/impuls/199394486863/';
 // Do not add https://yandex.ru/maps/org/impuls_plyus/56854615182/ — that is Impulse Plus (women), not this org.
+const IMPULS_SEO_GOOGLE_MAPS = 'https://www.google.com/maps?cid=15314458287710222197'; // hex 0xd487e2ac56813775, Knowledge /g/11f71nqzrt
 const IMPULS_SEO_OG_IMAGE = '/wp-content/uploads/og-image-1200x630.jpg';
 
 /**
@@ -83,6 +84,7 @@ add_filter(
 			IMPULS_SEO_2GIS,
 			IMPULS_SEO_YANDEX_MAPS,
 			'https://yandex.ru/sprav/199394486863',
+			IMPULS_SEO_GOOGLE_MAPS,
 			'https://vk.com/impuls_omsk',
 			'https://t.me/impuls_red_bot',
 			'https://impulsplus55.ru/',
@@ -138,13 +140,14 @@ add_action(
 				),
 				'geo'      => array(
 					'@type'     => 'GeoCoordinates',
-					'latitude'  => '54.989347',
-					'longitude' => '73.368221',
+					'latitude'  => '54.9827326',
+					'longitude' => '73.3928691',
 				),
 				'sameAs'   => array(
 					IMPULS_SEO_2GIS,
 					IMPULS_SEO_YANDEX_MAPS,
 					'https://yandex.ru/sprav/199394486863',
+					IMPULS_SEO_GOOGLE_MAPS,
 					'https://vk.com/impuls_omsk',
 					'https://t.me/impuls_red_bot',
 					'https://impulsplus55.ru/',
