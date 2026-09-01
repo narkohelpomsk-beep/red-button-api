@@ -35,7 +35,7 @@
 - тип: `["NGO","LocalBusiness"]` — **не** `MedicalClinic`, **не** `MedicalWebPage`;
 - `taxID` 5504151921, ОГРН 1175543039913, ОКВЭД 87.90;
 - `postalCode` **644070** (как в 2ГИС; в schema сейчас 644000);
-- `sameAs` на публичную карточку 2ГИС, не на кабинет;
+- `sameAs`: 2ГИС `https://2gis.ru/omsk/firm/70000001033512039` и Яндекс Карты `https://yandex.ru/maps/org/impuls/199394486863/` (ID 199394486863; Справочник: https://yandex.ru/sprav/199394486863);
 - `department` — ООО «ДА-компани» как медпартнёр со ссылкой на `/licenziya/`;
 - description **без** «медикаментозного лечения».
 
@@ -161,13 +161,15 @@ Yoast → Search Appearance → Graph / Schema: Organization description зам�
 
 ---
 
-## 7. sameAs 2ГИС
+## 7. sameAs: 2ГИС и Яндекс Карты
 
-**Сейчас:** `https://account.2gis.com/orgs/70000001033512038` (кабинет, чужой/старый ID).
+**2ГИС (публичная карточка):** `https://2gis.ru/omsk/firm/70000001033512039`  
+Не использовать кабинет `account.2gis.com/orgs/…12038`.
 
-**Нужно:** `https://2gis.ru/omsk/firm/70000001033512039`
+**Яндекс:** карточка есть. Канон Карт: `https://yandex.ru/maps/org/impuls/199394486863/`  
+Справочник (тот же ID, без редиректа на maps): `https://yandex.ru/sprav/199394486863`
 
-Сниппет подменяет ID в HTML. Вручную поправить тот же URL в кастомном JSON-LD темы.
+Оба URL — в `sameAs` Organization/NGO/LocalBusiness вместе с VK и Telegram.
 
 ---
 
@@ -232,4 +234,4 @@ curl -sI https://www.narkohelpomsk.ru/prise/ | grep -i location
 curl -sL https://www.narkohelpomsk.ru/rasschitat-stoimost/ | grep -o '<h1[^>]*>.*</h1>'
 ```
 
-Карточку в Яндекс Картах и Google Business из репозитория создать нельзя — только из кабинетов организации.
+Google Business Profile из репозитория не создать — только из кабинета организации. Карточка Яндекс Карт уже есть (`199394486863`).

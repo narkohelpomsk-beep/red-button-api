@@ -20,6 +20,7 @@ const IMPULS_SEO_ORG_DESC = 'АНО «ЦСП «Импульс»»: социал�
 const IMPULS_SEO_PAGE_TITLE = 'Реабилитационный центр «Импульс» в Омске — помощь при зависимости';
 const IMPULS_SEO_H1 = 'Реабилитационный центр «Импульс» в Омске';
 const IMPULS_SEO_2GIS = 'https://2gis.ru/omsk/firm/70000001033512039';
+const IMPULS_SEO_YANDEX_MAPS = 'https://yandex.ru/maps/org/impuls/199394486863/';
 const IMPULS_SEO_OG_IMAGE = '/wp-content/uploads/og-image-1200x630.jpg';
 
 /**
@@ -79,6 +80,8 @@ add_filter(
 		$data['description']   = IMPULS_SEO_ORG_DESC;
 		$data['sameAs']        = array(
 			IMPULS_SEO_2GIS,
+			IMPULS_SEO_YANDEX_MAPS,
+			'https://yandex.ru/sprav/199394486863',
 			'https://vk.com/impuls_omsk',
 			'https://t.me/impuls_red_bot',
 			'https://impulsplus55.ru/',
@@ -139,6 +142,8 @@ add_action(
 				),
 				'sameAs'   => array(
 					IMPULS_SEO_2GIS,
+					IMPULS_SEO_YANDEX_MAPS,
+					'https://yandex.ru/sprav/199394486863',
 					'https://vk.com/impuls_omsk',
 					'https://t.me/impuls_red_bot',
 					'https://impulsplus55.ru/',
