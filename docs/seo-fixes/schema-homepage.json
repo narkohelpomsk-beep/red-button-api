@@ -1,0 +1,182 @@
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": ["NGO", "LocalBusiness"],
+      "@id": "https://www.narkohelpomsk.ru/#organization",
+      "name": "АНО «ЦСП «Импульс»»",
+      "alternateName": [
+        "Реабилитационный центр «Импульс»",
+        "Центр социальной помощи «Импульс»"
+      ],
+      "legalName": "Автономная некоммерческая организация «Центр социальной помощи «Импульс»»",
+      "url": "https://www.narkohelpomsk.ru/",
+      "logo": {
+        "@type": "ImageObject",
+        "@id": "https://www.narkohelpomsk.ru/#/schema/logo/image/",
+        "url": "https://www.narkohelpomsk.ru/wp-content/uploads/2024/01/logo-2.svg",
+        "contentUrl": "https://www.narkohelpomsk.ru/wp-content/uploads/2024/01/logo-2.svg",
+        "caption": "АНО «ЦСП «Импульс»»"
+      },
+      "image": {
+        "@id": "https://www.narkohelpomsk.ru/#/schema/logo/image/"
+      },
+      "email": "rc-impuls@yandex.ru",
+      "telephone": ["+7-3812-387-927", "+7-909-535-40-90"],
+      "taxID": "5504151921",
+      "foundingDate": "2017-12-15",
+      "identifier": [
+        {
+          "@type": "PropertyValue",
+          "name": "ОГРН",
+          "value": "1175543039913"
+        },
+        {
+          "@type": "PropertyValue",
+          "name": "ИНН",
+          "value": "5504151921"
+        },
+        {
+          "@type": "PropertyValue",
+          "name": "ОКВЭД",
+          "value": "87.90"
+        }
+      ],
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "ул. Декабристов, 37, оф. 25",
+        "addressLocality": "Омск",
+        "addressRegion": "Омская область",
+        "postalCode": "644070",
+        "addressCountry": "RU"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": "54.9827326",
+        "longitude": "73.3928691"
+      },
+      "openingHoursSpecification": {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": [
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+          "Sunday"
+        ],
+        "opens": "00:00",
+        "closes": "23:59"
+      },
+      "areaServed": {
+        "@type": "City",
+        "name": "Омск"
+      },
+      "priceRange": "от 45000 RUB/мес",
+      "currenciesAccepted": "RUB",
+      "description": "Автономная некоммерческая организация. Социальная реабилитация и консультации при зависимости в Омске. Медицинские услуги (в том числе детоксикацию) оказывает лицензированный партнёр, не АНО «Импульс».",
+      "knowsAbout": [
+        "социальная реабилитация зависимости",
+        "помощь родственникам зависимого",
+        "программа 12 шагов"
+      ],
+      "sameAs": [
+        "https://2gis.ru/omsk/firm/70000001033512039",
+        "https://yandex.ru/maps/org/impuls/199394486863/",
+        "https://yandex.ru/sprav/199394486863",
+        "https://www.google.com/maps?cid=15314458287710222197",
+        "https://vk.com/impuls_omsk",
+        "https://t.me/impuls_red_bot",
+        "https://impulsplus55.ru/",
+        "https://zoon.ru/omsk/medical/reabilitatsionnyj_tsentr_impuls_na_ulitse_dekabristov/"
+      ],
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": "Программы центра «Импульс»",
+        "itemListElement": [
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Социальная реабилитация при зависимости",
+              "url": "https://www.narkohelpomsk.ru/reabilitacziya/"
+            },
+            "priceSpecification": {
+              "@type": "PriceSpecification",
+              "minPrice": 45000,
+              "priceCurrency": "RUB",
+              "unitText": "месяц"
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Реабилитация наркозависимых",
+              "url": "https://www.narkohelpomsk.ru/reabilitaciya-narkozavisimyh/"
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Реабилитация алкозависимых",
+              "url": "https://www.narkohelpomsk.ru/reabilitaciya-alkozavisimyh/"
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Помощь при игромании",
+              "url": "https://www.narkohelpomsk.ru/lechenie-igromanii/"
+            }
+          }
+        ]
+      },
+      "department": {
+        "@type": "MedicalOrganization",
+        "name": "ООО «ДА-компани»",
+        "description": "Лицензированный медицинский партнёр. Медицинские услуги, включая детоксикацию, оказывает партнёр, а не АНО «ЦСП «Импульс»». Подробности: https://www.narkohelpomsk.ru/licenziya/"
+      }
+    },
+    {
+      "@type": "WebPage",
+      "@id": "https://www.narkohelpomsk.ru/#webpage",
+      "url": "https://www.narkohelpomsk.ru/",
+      "name": "Реабилитационный центр «Импульс» в Омске — помощь при зависимости",
+      "isPartOf": {
+        "@id": "https://www.narkohelpomsk.ru/#website"
+      },
+      "about": {
+        "@id": "https://www.narkohelpomsk.ru/#organization"
+      },
+      "description": "АНО «ЦСП «Импульс»»: социальная реабилитация зависимости в Омске от 45 000 ₽/мес. Консультации 24/7, анонимно. Медицинские услуги оказывает лицензированный партнёр.",
+      "inLanguage": "ru-RU",
+      "primaryImageOfPage": {
+        "@id": "https://www.narkohelpomsk.ru/#primaryimage"
+      }
+    },
+    {
+      "@type": "ImageObject",
+      "@id": "https://www.narkohelpomsk.ru/#primaryimage",
+      "url": "https://www.narkohelpomsk.ru/wp-content/uploads/og-image-1200x630.jpg",
+      "contentUrl": "https://www.narkohelpomsk.ru/wp-content/uploads/og-image-1200x630.jpg",
+      "width": 1200,
+      "height": 630,
+      "caption": "Реабилитационный центр «Импульс» в Омске"
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://www.narkohelpomsk.ru/#website",
+      "url": "https://www.narkohelpomsk.ru/",
+      "name": "Центр социальной помощи «Импульс», Омск",
+      "description": "Социальная реабилитация и консультации при зависимости. АНО, Омск. Медицинские услуги — у лицензированного партнёра.",
+      "publisher": {
+        "@id": "https://www.narkohelpomsk.ru/#organization"
+      },
+      "inLanguage": "ru-RU"
+    }
+  ]
+}

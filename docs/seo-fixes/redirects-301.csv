@@ -1,0 +1,11 @@
+source,target,code,note
+/prise/,https://www.narkohelpomsk.ru/czeny-na-reabilitacziyu-alko-i-narkozavisimyh/,301,typo URL; same H1 as prices page
+/prise,https://www.narkohelpomsk.ru/czeny-na-reabilitacziyu-alko-i-narkozavisimyh/,301,no trailing slash
+/programmy-narko/,https://www.narkohelpomsk.ru/reabilitaciya-narkozavisimyh/,301,cannibal of narcology landing
+/programmy-narko,https://www.narkohelpomsk.ru/reabilitaciya-narkozavisimyh/,301,
+/programmy-alkogol/,https://www.narkohelpomsk.ru/reabilitaciya-alkozavisimyh/,301,cannibal of alcohol landing
+/programmy-alkogol,https://www.narkohelpomsk.ru/reabilitaciya-alkozavisimyh/,301,
+/lechenie-zavisimosti-ot-azartnyh-igr/,https://www.narkohelpomsk.ru/lechenie-igromanii/,301,cannibal of gambling landing
+/lechenie-zavisimosti-ot-azartnyh-igr,https://www.narkohelpomsk.ru/lechenie-igromanii/,301,
+/news/%D0%B2%D0%B5%D1%81%D0%BD%D0%B0-%F0%9F%98%8D/,https://www.narkohelpomsk.ru/news/,301,emoji slug
+/news/весна-😍/,https://www.narkohelpomsk.ru/news/,301,decoded emoji slug (plugin may need one of the two)
