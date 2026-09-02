@@ -1,5 +1,7 @@
 # Готовые правки SEO для narkohelpomsk.ru
 
+**Статус на проде (2 сентября 2026):** к on-page 01.09 добавлен разбор конкурента Osnova Life и коммерческие блоки (цена / срок / что входит / лицензия партнёра / оглавление / FAQ семей) в `library/seo-technical.php` и лендинг-шелл. Title/H1 частых запросов и schema NGO/LocalBusiness / sameAs / 301 **не откатывались**. Сравнение: [`docs/seo-osnova-life-vs-impuls-2026-09.md`](../seo-osnova-life-vs-impuls-2026-09.md). WP Rocket сброшен.
+
 **Статус на проде (1 сентября 2026):** on-page дожат в живой теме Impulse (`library/seo-technical.php`, `library/seo-meta.php`, главная, контакты, лендинги). Снаружи: NGO/LocalBusiness, FAQPage на главной + нарко/алкоголь/цены, ключ в начале title, уникальные H1, цена/Омск/24/7 в description, перелинковка с главной и хаба родственников, NAP на `/contacts/` (Яндекс+Google+2ГИС), 301 дублей, один GTM `GTM-PBHDQPHM`. `sameAs` — 2ГИС, Яндекс `…/impuls/199394486863/`, Google `https://www.google.com/maps?cid=15314458287710222197`; geo 54.9827326, 73.3928691. Карту Плюса не ставили. Учётные данные WP в репозиторий не записывались.
 
 Этот git-репозиторий — Python-бот (red-button-api), не исходники WordPress. Ниже — эталон для повторного применения.
@@ -297,6 +299,14 @@ curl -sL https://www.narkohelpomsk.ru/rasschitat-stoimost/ | grep -o '<h1[^>]*>.
 
 curl -sL https://www.narkohelpomsk.ru/ | grep -o 'https://www.google.com/maps?cid=[0-9]*'
 # https://www.google.com/maps?cid=15314458287710222197
+
+# Osnova-приёмы (02.09.2026), без отката title/schema/301:
+curl -sL 'https://www.narkohelpomsk.ru/reabilitaciya-narkozavisimyh/?nowprocket=1' | grep -c impulse-seo-offer
+# ≥ 1
+curl -sL 'https://www.narkohelpomsk.ru/informaciya-dlya-rodstvennikov/?nowprocket=1' | grep -c impulse-seo-relatives-hub
+# ≥ 1
+curl -sI https://www.narkohelpomsk.ru/programmy-narko/ | grep -i location
+# Location: .../reabilitaciya-narkozavisimyh/
 ```
 
 Google в `sameAs` живой главной: `https://www.google.com/maps?cid=15314458287710222197` (карточка «Импульс», kg `/g/11f71nqzrt`). Старый внутренний cid `16892342034457875612` не использовать. Карточки Яндекс без изменений: основной `199394486863`, Плюс `56854615182` (Плюс не в sameAs narkohelpomsk.ru).
