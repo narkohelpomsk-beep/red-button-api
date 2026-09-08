@@ -4,6 +4,8 @@
 
 Перед применением: вписать название организации, ФИО руководителя, штатное расписание и согласовать с юристом. Должности можно совмещать (например, администратор + первичное консультирование в небольшом центре).
 
+Штат **без медицинской сестры** (социальная / психологическая модель реабилитации; острые состояния — вызов скорой и эскалация руководству).
+
 ---
 
 ## Состав пакета
@@ -16,16 +18,15 @@
 | 04 | [04-psiholog.md](04-psiholog.md) | Психолог |
 | 05 | [05-konsultant-kurator.md](05-konsultant-kurator.md) | Консультант по ХЗ (куратор) |
 | 06 | [06-specialist-po-socialnoj-rabote.md](06-specialist-po-socialnoj-rabote.md) | Специалист по социальной работе |
-| 07 | [07-medicinskaya-sestra.md](07-medicinskaya-sestra.md) | Медицинская сестра |
-| 08 | [08-specialist-pervichnogo-konsultirovaniya.md](08-specialist-pervichnogo-konsultirovaniya.md) | Специалист первичного консультирования (горячая линия) |
-| 09 | [09-specialist-po-rabote-s-rodstvennikami.md](09-specialist-po-rabote-s-rodstvennikami.md) | Специалист по работе с родственниками |
-| 10 | [10-buhgalter.md](10-buhgalter.md) | Бухгалтер |
-| 11 | [11-zaveduyushchij-hozyajstvom.md](11-zaveduyushchij-hozyajstvom.md) | Заведующий хозяйством |
-| 12 | [12-povar.md](12-povar.md) | Повар |
-| 13 | [13-gornichnaya.md](13-gornichnaya.md) | Горничная |
-| 14 | [14-ohrannik.md](14-ohrannik.md) | Охранник |
-| 15 | [15-marketolog.md](15-marketolog.md) | Маркетолог |
-| 16 | [16-rukovoditel-po-svyazyam-s-obshhestvennostyu-i-privlecheniyu-klientov.md](16-rukovoditel-po-svyazyam-s-obshhestvennostyu-i-privlecheniyu-klientov.md) | Руководитель по PR и привлечению клиентов |
+| 07 | [07-specialist-pervichnogo-konsultirovaniya.md](07-specialist-pervichnogo-konsultirovaniya.md) | Специалист первичного консультирования (горячая линия) |
+| 08 | [08-specialist-po-rabote-s-rodstvennikami.md](08-specialist-po-rabote-s-rodstvennikami.md) | Специалист по работе с родственниками |
+| 09 | [09-buhgalter.md](09-buhgalter.md) | Бухгалтер |
+| 10 | [10-zaveduyushchij-hozyajstvom.md](10-zaveduyushchij-hozyajstvom.md) | Заведующий хозяйством |
+| 11 | [11-povar.md](11-povar.md) | Повар |
+| 12 | [12-gornichnaya.md](12-gornichnaya.md) | Горничная |
+| 13 | [13-ohrannik.md](13-ohrannik.md) | Охранник |
+| 14 | [14-marketolog.md](14-marketolog.md) | Маркетолог |
+| 15 | [15-rukovoditel-po-svyazyam-s-obshhestvennostyu-i-privlecheniyu-klientov.md](15-rukovoditel-po-svyazyam-s-obshhestvennostyu-i-privlecheniyu-klientov.md) | Руководитель по PR и привлечению клиентов |
 
 ---
 
@@ -38,8 +39,7 @@
       │    ├── Психолог
       │    ├── Консультант-куратор
       │    ├── Специалист по социальной работе
-      │    ├── Специалист по работе с родственниками
-      │    └── Медицинская сестра (функционально)
+      │    └── Специалист по работе с родственниками
       ├── Администратор
       ├── Руководитель по PR и привлечению клиентов
       │    ├── Маркетолог
@@ -71,6 +71,6 @@
 
 1. Утвердить штатное расписание и решить, какие ставки совмещаются.  
 2. Адаптировать обязанности под модель центра (12 шагов / Minnesota / иная).  
-3. Если есть медицинская лицензия — отдельно усилить ДИ медперсонала и врача-нарколога (врач в базовый пакет не включён: часто привлекается по договору).  
+3. Медицинский персонал в штате не предусмотрен: при ухудшении состояния — протокол вызова 103/112 и доклад директору / руководителю программы; при необходимости врач привлекается по договору.  
 4. Ознакомить сотрудников под подпись; хранить экземпляры в личных делах.  
 5. Пересматривать инструкции при изменении программы, оргструктуры или законодательства.
